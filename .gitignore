@@ -3,6 +3,8 @@ __pycache__/
 venv/
 .venv/
 .ipynb_checkpoints/
-dataset_processed/temp_X.dat
-dataset_processed/temp_y.dat
+dataset_processed_clean_split/
+dataset_processed_random_split/
+dataset_processed_with_state_clean_split/
+dataset_processed_with_state_random_split/
 stockfish/

@@ -1,0 +1,73 @@
+{
+    "experiment_name": "run_2025_12_28_deepchess_baseline_v2",
+    "global_accuracy": 0.83448,
+    "inference_latency_ms": 0.007645406723022461,
+    "ordinal_metrics": {
+        "mae": 0.20401,
+        "off_by_one_accuracy": 0.976,
+        "off_by_two_accuracy": 0.98982
+    },
+    "catastrophic_failure_counts": {
+        "3": 776,
+        "4": 119,
+        "5": 57,
+        "6": 66
+    },
+    "classification_report": {
+        "0": {
+            "precision": 0.8506214149139579,
+            "recall": 0.7149457613499397,
+            "f1-score": 0.7769046059812268,
+            "support": 4978.0
+        },
+        "1": {
+            "precision": 0.6831410592553749,
+            "recall": 0.741779359430605,
+            "f1-score": 0.7112536681908141,
+            "support": 7025.0
+        },
+        "2": {
+            "precision": 0.7565794801198478,
+            "recall": 0.65823587431309,
+            "f1-score": 0.7039897524771126,
+            "support": 14194.0
+        },
+        "3": {
+            "precision": 0.889306245100601,
+            "recall": 0.9409061063690085,
+            "f1-score": 0.9143787886420499,
+            "support": 57874.0
+        },
+        "4": {
+            "precision": 0.7457091237579042,
+            "recall": 0.6443345908676987,
+            "f1-score": 0.6913252843883034,
+            "support": 7687.0
+        },
+        "5": {
+            "precision": 0.6931055521659548,
+            "recall": 0.7143156570949486,
+            "f1-score": 0.70355078447564,
+            "support": 4771.0
+        },
+        "6": {
+            "precision": 0.8267716535433071,
+            "recall": 0.7260155574762316,
+            "f1-score": 0.7731247123791992,
+            "support": 3471.0
+        },
+        "accuracy": 0.83448,
+        "macro avg": {
+            "precision": 0.7778906469795641,
+            "recall": 0.7343618438430746,
+            "f1-score": 0.7535039423620494,
+            "support": 100000.0
+        },
+        "weighted avg": {
+            "precision": 0.8314885514764359,
+            "recall": 0.83448,
+            "f1-score": 0.8312955083863952,
+            "support": 100000.0
+        }
+    }
+}
