@@ -1,0 +1,26 @@
+{
+    "experiment_name": "run_2026_01_05_wide_mlp_v1",
+    "timestamp": "2026-01-05 10:55:07",
+    "model_architecture": {
+        "class_name": "WideMLP",
+        "total_parameters": 5808135,
+        "trainable_parameters": 5808135,
+        "input_dim": 775,
+        "output_dim": 7,
+        "structure_summary": "WideMLP(\n  (network): Sequential(\n    (0): Linear(in_features=775, out_features=2048, bias=True)\n    (1): BatchNorm1d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n    (2): ReLU()\n    (3): Dropout(p=0.5, inplace=False)\n    (4): Linear(in_features=2048, out_features=2048, bias=True)\n    (5): BatchNorm1d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n    (6): ReLU()\n    (7): Dropout(p=0.5, inplace=False)\n    (8): Linear(in_features=2048, out_features=7, bias=True)\n  )\n)"
+    },
+    "datasets": {
+        "train": "dataset_bitmaps\\bitboard_train.npz",
+        "val": "dataset_bitmaps\\bitboard_val.npz",
+        "test": "dataset_bitmaps\\bitboard_test.npz"
+    },
+    "hyperparameters": {
+        "epochs": 100,
+        "batch_size": 2048,
+        "learning_rate": 0.001,
+        "optimizer": "AdamW",
+        "input_shape": 775,
+        "output_shape": 7
+    },
+    "device": "NVIDIA GeForce RTX 3070"
+}
