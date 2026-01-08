@@ -11,6 +11,4 @@ cclr/
 dataset_clean/
 dataset_ready/
 dataset_bitmaps/
-wide_mlp_v1.pth
-pyramidal_mlp_v1.pth
-pyramidal_mlp_v2.pth
+models
