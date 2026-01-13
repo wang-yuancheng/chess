@@ -1,0 +1,72 @@
+
+"experiment_name": "seresnet_no_dropout_no_scheduler",
+    "global_accuracy": 0.5322,
+
+
+1%| | 1/100 [06:25<10:36:06, 385.52s/it]
+
+Epoch 0: New Best Val Loss: 1.2200 (Saved)Epoch: 0 | Train Loss: 1.0945735024346246 | Train Acc: 0.5619567168840861 | Val Loss: 1.2199505559413506 | Val Acc: 0.5288731544537852
+
+2%|▏ | 2/100 [12:01<9:42:19, 356.52s/it]
+
+Epoch 1: Train Loss: 1.0927 | Val Loss: 1.2291Epoch: 1 | Train Loss: 1.0927124661869474 | Train Acc: 0.562898118266485 | Val Loss: 1.2291185062493073 | Val Acc: 0.5277040907967858
+
+3%|▎ | 3/100 [17:40<9:23:07, 348.33s/it]
+
+Epoch 2: New Best Val Loss: 1.2179 (Saved)Epoch: 2 | Train Loss: 1.0927965485254922 | Train Acc: 0.5626531773267134 | Val Loss: 1.2179036722248324 | Val Acc: 0.529208260047
+
+4%|▍ | 4/100 [23:20<9:12:00, 345.01s/it]
+
+Epoch 3: Train Loss: 1.0934 | Val Loss: 1.2376Epoch: 3 | Train Loss: 1.0934062506887647 | Train Acc: 0.5624566000616563 | Val Loss: 1.2375566519974848 | Val Acc: 0.519753254027379
+
+5%|▌ | 5/100 [28:58<9:02:12, 342.45s/it]
+
+Epoch 4: Train Loss: 1.0921 | Val Loss: 1.2261Epoch: 4 | Train Loss: 1.092074311627282 | Train Acc: 0.5630210345275182 | Val Loss: 1.2261425732752569 | Val Acc: 0.5172019210758018
+
+6%|▌ | 6/100 [34:36<8:54:13, 341.00s/it]
+
+Epoch 5: New Best Val Loss: 1.2121 (Saved)Epoch: 5 | Train Loss: 1.0911824036174351 | Train Acc: 0.5632991599331516 | Val Loss: 1.2121086348445749 | Val Acc: 0.538787835762674
+
+7%|▋ | 7/100 [40:00<8:39:53, 335.41s/it]
+
+Epoch 6: Train Loss: 1.0909 | Val Loss: 1.2188Epoch: 6 | Train Loss: 1.09093660847346 | Train Acc: 0.5633925740686656 | Val Loss: 1.2187984913282428 | Val Acc: 0.5306333179484645
+
+8%|▊ | 8/100 [45:21<8:27:19, 330.86s/it]
+
+Epoch 7: Train Loss: 1.0900 | Val Loss: 1.2148Epoch: 7 | Train Loss: 1.0899858999252319 | Train Acc: 0.5640296473422898 | Val Loss: 1.2147990591290054 | Val Acc: 0.5283902602586091
+
+9%|▉ | 9/100 [50:40<8:16:12, 327.17s/it]
+
+Epoch 8: Train Loss: 1.0904 | Val Loss: 1.2202Epoch: 8 | Train Loss: 1.0903661541938783 | Train Acc: 0.563675665238837 | Val Loss: 1.2201731880370261 | Val Acc: 0.5256937944531369
+
+10%|█ | 10/100 [56:06<8:10:04, 326.72s/it]
+
+Epoch 9: Train Loss: 1.0901 | Val Loss: 1.2445Epoch: 9 | Train Loss: 1.0901028501722547 | Train Acc: 0.5637975033261942 | Val Loss: 1.2444640650277252 | Val Acc: 0.5136056380126618
+
+11%|█ | 11/100 [1:01:43<8:09:32, 330.03s/it]
+
+Epoch 10: New Best Val Loss: 1.2110 (Saved)Epoch: 10 | Train Loss: 1.0897026324801975 | Train Acc: 0.5639515389732607 | Val Loss: 1.210988290887644 | Val Acc: 0.5353680522048542
+
+12%|█▏ | 12/100 [1:07:20<8:06:56, 332.00s/it]
+
+Epoch 11: Train Loss: 1.0892 | Val Loss: 1.2167Epoch: 11 | Train Loss: 1.0891896295547485 | Train Acc: 0.5642150380484164 | Val Loss: 1.2166632503372816 | Val Acc: 0.536929374608662
+
+13%|█▎ | 13/100 [1:12:51<8:01:01, 331.74s/it]
+
+Epoch 12: New Best Val Loss: 1.2103 (Saved)Epoch: 12 | Train Loss: 1.0899093644883897 | Train Acc: 0.5640058366595275 | Val Loss: 1.2103129722966268 | Val Acc: 0.5321532355888197
+
+14%|█▍ | 14/100 [1:18:19<7:53:46, 330.54s/it]
+
+Epoch 13: Train Loss: 1.0878 | Val Loss: 1.2182Epoch: 13 | Train Loss: 1.087832149611579 | Train Acc: 0.5649051491108515 | Val Loss: 1.218242326694137 | Val Acc: 0.5263627883050997
+
+15%|█▌ | 15/100 [1:23:52<7:49:31, 331.43s/it]
+
+Epoch 14: Train Loss: 1.0886 | Val Loss: 1.2286Epoch: 14 | Train Loss: 1.088571803940667 | Train Acc: 0.5646406513661734 | Val Loss: 1.22863426468885 | Val Acc: 0.5296296172852674
+
+16%|█▌ | 16/100 [1:29:20<7:42:43, 330.52s/it]
+
+Epoch 15: Train Loss: 1.0874 | Val Loss: 1.2388Epoch: 15 | Train Loss: 1.0874096727371216 | Train Acc: 0.5649189564674195 | Val Loss: 1.2388229667123267 | Val Acc: 0.5278500170169367
+
+17%|█▋ | 17/100 [1:34:48<7:35:59, 329.63s/it]
+
+Epoch 16: Train Loss: 1.0882 | Val Loss: 1.2452Epoch: 16 | Train Loss: 1.0881571281221178 | Train Acc: 0.5647762850467289 | Val Loss: 1.2451909398056134 | Val Acc: 0.5112176573541644
