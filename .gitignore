@@ -13,3 +13,4 @@ dataset_ready/
 dataset_bitmaps/
 models
 dataset_planes/
+dataset_planes_cp/
