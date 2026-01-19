@@ -14,4 +14,5 @@ dataset_bitmaps/
 models
 dataset_planes/
 dataset_planes_cp/
+dataset_bitmaps_cp/
 experiments/results/old/
