@@ -1,0 +1,26 @@
+{
+    "experiment_name": "run_2026_01_22_probs_mlp_v4",
+    "timestamp": "2026-01-22 15:13:35",
+    "model_architecture": {
+        "class_name": "MLP",
+        "total_parameters": 1323015,
+        "trainable_parameters": 1323015,
+        "input_dim": 775,
+        "output_dim": 7,
+        "structure_summary": "MLP(\n  (network): Sequential(\n    (0): Linear(in_features=775, out_features=512, bias=True)\n    (1): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n    (2): ReLU()\n    (3): Dropout(p=0.2, inplace=False)\n    (4): Linear(in_features=512, out_features=512, bias=True)\n    (5): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n    (6): ReLU()\n    (7): Dropout(p=0.3, inplace=False)\n    (8): Linear(in_features=512, out_features=512, bias=True)\n    (9): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n    (10): ReLU()\n    (11): Dropout(p=0.3, inplace=False)\n    (12): Linear(in_features=512, out_features=512, bias=True)\n    (13): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n    (14): ReLU()\n    (15): Dropout(p=0.3, inplace=False)\n    (16): Linear(in_features=512, out_features=256, bias=True)\n    (17): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)\n    (18): ReLU()\n    (19): Dropout(p=0.4, inplace=False)\n    (20): Linear(in_features=256, out_features=7, bias=True)\n  )\n)"
+    },
+    "datasets": {
+        "train": "dataset_bitmaps_cp\\train_X.npy",
+        "val": "dataset_bitmaps_cp\\val_X.npy",
+        "test": "dataset_bitmaps_cp\\test_X.npy"
+    },
+    "hyperparameters": {
+        "epochs": 100,
+        "batch_size": 512,
+        "learning_rate": 0.001,
+        "optimizer": "AdamW",
+        "input_shape": 775,
+        "output_shape": 7
+    },
+    "device": "NVIDIA GeForce RTX 3070"
+}
