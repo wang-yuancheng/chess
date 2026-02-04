@@ -1,0 +1,9 @@
+{
+    "total_positions": 200455,
+    "correct_reads": 139306,
+    "accuracy": 0.6949489910453718,
+    "errors": {
+        "predicted_draw": 17961,
+        "predicted_wrong_winner": 43188
+    }
+}
