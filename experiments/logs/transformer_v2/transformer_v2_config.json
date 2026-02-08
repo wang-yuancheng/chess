@@ -1,0 +1,24 @@
+{
+    "experiment_name": "transformer_v2",
+    "timestamp": "2026-02-08 17:09:42",
+    "model_architecture": {
+        "class_name": "Transformer",
+        "total_parameters": 3218439,
+        "trainable_parameters": 3218439,
+        "structure_summary": "Transformer(\n  (embedding): Linear(in_features=19, out_features=256, bias=True)\n  (embed_activation): ReLU()\n  (embed_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)\n  (blocks): ModuleList(\n    (0-5): 6 x EncoderBlock(\n      (mha): MultiheadAttention(\n        (out_proj): NonDynamicallyQuantizableLinear(in_features=256, out_features=256, bias=True)\n      )\n      (dropout1): Dropout(p=0.1, inplace=False)\n      (ln1): LayerNorm((256,), eps=1e-05, elementwise_affine=True)\n      (ffn): Ffn(\n        (linear1): Linear(in_features=256, out_features=512, bias=True)\n        (activation): ReLU()\n        (dropout): Dropout(p=0.1, inplace=False)\n        (linear2): Linear(in_features=512, out_features=256, bias=True)\n      )\n      (dropout2): Dropout(p=0.1, inplace=False)\n      (ln2): LayerNorm((256,), eps=1e-05, elementwise_affine=True)\n    )\n  )\n  (classifier_head): Sequential(\n    (0): Linear(in_features=256, out_features=128, bias=True)\n    (1): ReLU()\n    (2): Linear(in_features=128, out_features=7, bias=True)\n  )\n)"
+    },
+    "datasets": {
+        "train": "dataset_planes_cp\\train_X.npy",
+        "val": "dataset_planes_cp\\val_X.npy",
+        "test": "dataset_planes_cp\\test_X.npy"
+    },
+    "hyperparameters": {
+        "input_channels": 19,
+        "embed_dim": 256,
+        "num_heads": 8,
+        "ffn_dim": 512,
+        "num_blocks": 6,
+        "num_classes": 7
+    },
+    "device": "NVIDIA GeForce RTX 3070"
+}
