@@ -1,0 +1,63 @@
+\documentclass{article} 
+\usepackage[final, nonatbib]{neurips_2025}
+
+% --- Essential Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}    % Good practice for NeurIPS
+\usepackage[english]{}
+\usepackage{hyperref}       % Hyperlinks
+\usepackage{url}            % Simple URL typesetting
+\usepackage{booktabs}       % Professional tables
+\usepackage{amsfonts}       % Blackboard math symbols
+\usepackage{nicefrac}       % Compact fractions
+\usepackage{microtype}      % Microtypography
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{siunitx}
+\usepackage{pgfplots}
+\usepackage{subcaption}
+\pgfplotsset{compat=1.18}
+\makeatletter
+\providecommand{\@trackname}{} 
+\makeatother
+
+\usepackage{pgfplots}
+\usepackage{tikz}
+\definecolor{transcolor}{RGB}{31, 119, 180} % Blue
+\definecolor{cnncolor}{RGB}{255, 127, 14}   % Orange
+\definecolor{mlpcolor}{RGB}{44, 160, 44}    % Green
+
+% --- Title Data ---
+\title{\textbf{Deep Learning and Computer Chess}}
+
+\author{
+    \textbf{Wang Yuancheng} \\
+    Nanyang Technological University \\
+    \textit{Undergraduate Research Experience on CAmpus (URECA)} \\
+    \textit{Supervisor: A/P He Ying}
+}
+\date{\today}
+
+\begin{document}
+
+% --- Main Body ---
+\maketitle
+\begin{abstract}
+\end{abstract}
+
+% --- Section 1: Introduction ---
+\section{Introduction}
+Deep learning has proved to be extremely capable in mastering complex tasks and solving challenging problems in a wide range of fields. However, deep neural networks are often viewed as black boxes and are difficult to interpret. With the inclusion of domain specific knowledge, the distinction between architectural contributions and task specific optimizations becomes even more unclear, making it harder to understand how they succeed. To explore how different models learn to understand tasks, we require an environment that is both challenging and well defined. This allows us to properly probe and evaluate the ability of these fundamental architectures in that specific area.
+
+A complex board game like chess serves as a perfect domain to seek a deeper understanding in common deep architectures. In chess, there exists perfect information and a set of rules, making it possible to completely remove human intervention in model design. It also possess a vast state space of approximately $10^{46}$ unique states, forcing models to generalize and potentially discover patterns without being told. 
+
+Current state-of-the-art engines like Stockfish 18 and Leela Chess Zero have achieved superhuman play in chess. However, they rely on search techniques such as Monte Carlo Tree Search and domain knowledge to guide and accelerate model learning. For instance, Stockfish uses handcrafted input feature sets that explicitly encode each piece's relationship with the King. On the other hand, Leela uses a transformer based architecture that mechanically injects the global board state into the attention mechanism. As a result, the learned representations of board state for example, may be biased, and hence, these advanced models cannot be directly used to study fundamental architectural capabilities. 
+
+This leads to our central question: are deep networks able to internalize the geometry and dynamics of chess without context or search? If so, how differently do they reason with the limited information provided to them? Does unpreventable inductive biases benefit or harm models?
+
+In this paper,  we look into 3 main architectures: Multi Layer Perceptrons (MLPs), Convolutional Neural Networks (CNNs) and Transformers. We investigate their differences in learned representation of board state under a strict \textit{tabula rasa} constraint. We show that models are able to learn geometric relationships via supervised learning when provided only the current state and a ground truth position evaluation from Stockfish.
+
+\end{document}
