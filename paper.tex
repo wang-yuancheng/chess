@@ -71,4 +71,13 @@ Later, CNNs emerged as a dominant architecture, as they are capable of capturing
 
 More recently, transformer architectures dominated the playing field, with open source implementations like Leela Chess Zero (Lc0) consistently winning 2nd place after Stockfish in online computer chess tournaments \cite{tcec_archive}. It was later shown that transformer based models can completely and efficiently internalize chess concepts, achieving grandmaster-level of play without any search algorithm or injection of domain specific knowledge \cite{ruoss2024grandmaster}.
 
+\subsection{Representation Learning and Probing}
+While frontier models achieve superhuman performance, their internal representations of the game state remain largely opaque. Researchers often use probing and dimensionality reduction techniques to analyze and interpret these black boxes\cite{alain2016understanding, jolliffe2016principal}. Other methods such as saliency maps \cite{simonyan2013deep}, Grad-CAM \cite{selvaraju2017grad} and attention weight visualizations \cite{clark2019does} have also proven to be useful.
+These methods have been applied to perfect information games and uncovered human concepts and emergent internal representations of board state \cite{li2022emergent}\cite{mcgrath2022acquisition}. While these prior works show that models can internally reconstruct game geometry, there exists no rigorous comparative analysis of fundamental architectural under strict \textit{tabula rasa} constraints specifically in the domain of chess. Our work benchmarks MLPs, CNNs, and Transformers trained from scratch on a self-curated dataset and provide a clear  analysis on how these models reason differently in the game of chess.
+
+\newpage
+
+% --- Section 3: Methodology  ---
+\section{Methodology}
+
 \end{document}
