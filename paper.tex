@@ -96,4 +96,7 @@ Unlike standard neural chess engines that normalize inputs to the perspective of
 
 The dataset was split with a ratio of 80-10-10 for training, validation and testing respectively. It is worth noting that the split is not done randomly. In a game, the current position and the next would be likely have highly similar evaluations assuming ideal play. As a result, doing a random shuffle when creating the train-test-split introduces data leakage. This was shown clearly in our initial experiments, where a basic MLP achieved 87.66\% test accuracy when trained with shuffled data versus a much lower 54.37\% when trained with data split by games. 
 
+\subsection{Input Representation} 
+When comparing different architectures, it is unavoidable to have slight differences in input representations. We adopt a widely used multi-channel tensor as our foundational baseline \cite{mcilroy2020aligning, silver2017alphazero}, which captures both the physical piece placements and necessary global state variables. However, we make a simple change by excluding the past 7 states in this input representation because Chess can be modeled as an alternating Markov game, where decisions made by the active player depend only on the current game state \cite{littman1994markov, tang2024maia}. Furthermore, it was shown to provide marginal benefits for static evaluation \cite{tang2024maia}. On top of that, it gives the network a chance to potentially derive chess rules regarding piece movements without prior knowledge of them.
+
 \end{document}
