@@ -31,7 +31,7 @@
 \definecolor{mlpcolor}{RGB}{44, 160, 44}    % Green
 
 % --- Title Data ---
-\title{\textbf{Deep Learning and Computer Chess}}
+\title{\textbf{The Influence of Inductive Biases on Emergent Geometry under Tabula Rasa Constraints}}
 
 \author{
     \textbf{Wang Yuancheng} \\
@@ -67,22 +67,24 @@ To understand why we choose to investigate these 3 specific architectures, we ha
 \subsection{Neural Chess Engines}
 Initial breakthroughs in computer chess had shown that deep neural networks could replace manually tuned evaluation heuristics popular at that time\cite{lai2015giraffe, david2016deepchess}. Those early models utilized MLPs, which is remain as the backbone of Efficiently Updatable Neural Networks (NNUE) \cite{nasu2018efficiently} that powers state-of-the-art engines like Stockfish today. These engines leverage and improve on engineered input representations from previous generations such as piece to king relationships, along with advanced search algorithms to achieve superhuman play. Without these "add-ons", MLPs would see a pure 1D input vector and have to to learn chess concepts from scratch due to a lack of spatial information.
 
-Later, CNNs emerged as a dominant architecture, as they are capable of capturing spatial relationships and 2D board geometry without the need for manual feature engineering \cite{silver2017alphazero}. AlphaZero, a chess engines arguably capable of defeating state-of-the-art engines back then, demonstrated that the usage of CNNs on chess evaluation functions can be very successful \cite{silver2017alphazero}. 
+Later, CNNs emerged as a dominant architecture, as they are capable of capturing spatial relationships without the need for manual feature engineering \cite{silver2017alphazero}. AlphaZero, a chess engines arguably capable of defeating state-of-the-art engines back then, demonstrated that the usage of CNNs on chess evaluation functions can be very successful \cite{silver2017alphazero}. 
 
 More recently, transformer architectures dominated the playing field, with open source implementations like Leela Chess Zero (Lc0) consistently winning 2nd place after Stockfish in online computer chess tournaments \cite{tcec_archive}. It was later shown that transformer based models can completely and efficiently internalize chess concepts, achieving grandmaster-level of play without any search algorithm or injection of domain specific knowledge \cite{ruoss2024grandmaster}.
 
 \subsection{Representation Learning and Probing}
 While frontier models achieve superhuman performance, their internal representations of the game state remain largely opaque. Researchers often use probing and dimensionality reduction techniques to analyze and interpret these black boxes\cite{alain2016understanding, jolliffe2016principal}. Other methods such as saliency maps \cite{simonyan2013deep}, Grad-CAM \cite{selvaraju2017grad} and attention weight visualizations \cite{clark2019does} have also proven to be useful.
-These methods have been applied to perfect information games and uncovered human concepts and emergent internal representations of board state \cite{li2022emergent}\cite{mcgrath2022acquisition}. While these prior works show that models can internally reconstruct game geometry, there exists no rigorous comparative analysis of fundamental architectural under strict \textit{tabula rasa} constraints specifically in the domain of chess. Our work benchmarks MLPs, CNNs, and Transformers trained from scratch on a self-curated dataset and provide a clear  analysis on how these models reason differently in the game of chess.
-
-\newpage
+These methods have been applied to perfect information games and uncovered human concepts and emergent internal representations of board state \cite{li2022emergent}\cite{mcgrath2022acquisition}. While these prior works show that models can internally reconstruct game geometry, there exists no rigorous comparative analysis of fundamental architectures under strict \textit{tabula rasa} constraints specifically in the domain of chess. 
 
 % --- Section 3: Methodology  ---
 \section{Methodology}
 We now provide details on the methods for dataset curation, model training, model evaluation and result interpretability.
 
 \subsection{Data} 
-Our dataset consists of approximately 5.8M unique board states downloaded and extracted from CCRL website (\url{www.computerchess.org.uk/ccrl/}). Each state $s$ is run through Stockfish 17 at a depth of 20, which gives a centipawn score describing the position's evaluation $E(s)$. To mimic the intuition that a human grandmaster has when observing a position, we bin the centipawn scores $E(s)$ that yields a 7-class target $y(s) \in \{0, 1, \dots, 6\}$. We use four magnitude tiers: Equal ($|E(s)| < 100$), Better ($100 \le |E(s)| < 300$), Decisive Advantage ($300 \le |E(s)| < 500$) and Winning ($|E(s)| \ge 500$). Here, positive values indicate an advantage for White and negative values indicate an advantage for Black.
+Our dataset consists of approximately 5.8M unique board states downloaded and extracted from CCRL website (\url{www.computerchess.org.uk/ccrl/}). Each state $s$ is run through Stockfish 17 at a depth of 20, which gives a centipawn score describing the position's evaluation $E(s)$. To mimic the intuition that a human grandmaster has when observing a position, we bin the centipawn scores $E(s)$ that yields a 7-class target $y(s) \in \{0, 1, \dots, 6\}$. We use four magnitude tiers: Equal ($|E(s)| < 100$), Better ($100 \le |E(s)| < 300$), Decisive Advantage ($300 \le |E(s)| < 500$) and Winning ($|E(s)| \ge 500$). Here, positive values indicate an advantage for White and negative values indicate an advantage for Black. 
+
+% EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT
+However, because chess evaluations are continuous, strict categorical boundaries introduces training instability (e.g., predicting the almost correct "Winning" label when $|E(s)| = 499$ ). Hence we map $E(s)$ to a continuous index and apply distance-aware Gaussian label smoothing to generate soft target distributions over the 7 classes (see Appendix \ref{label_smoothing}).
+% EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT EDIT
 
 In addition, we apply the following procedures to our raw dataset:
 
@@ -94,9 +96,17 @@ In addition, we apply the following procedures to our raw dataset:
 
 Unlike standard neural chess engines that normalize inputs to the perspective of White, we deliberately preserve the absolute, unrotated board state. Normalizing the perspective means removing knowledge of "Black's perspective" of the game. Not only does this violate our idea of \textit{tabula rasa} by using human knowledge of color and spatial symmetry, it misses the opportunity to observe if these networks can learn this symmetry independently. While we also utilize horizontal board mirroring to augment our dataset, that merely samples from other valid, reachable game states.
 
-The dataset was split with a ratio of 80-10-10 for training, validation and testing respectively. It is worth noting that the split is not done randomly. In a game, the current position and the next would be likely have highly similar evaluations assuming ideal play. As a result, doing a random shuffle when creating the train-test-split introduces data leakage. This was shown clearly in our initial experiments, where a basic MLP achieved 87.66\% test accuracy when trained with shuffled data versus a much lower 54.37\% when trained with data split by games. 
+The dataset was split with a ratio of 80-10-10 for training, validation and testing respectively. It is worth noting that the split is not done randomly. In a game, the current position and the next would be likely have highly similar evaluations assuming ideal play. As a result, doing a random shuffle when creating the train-test-split introduces data leakage. This was shown clearly in our initial experiments, where a basic MLP achieved 87.66\% test accuracy when trained with shuffled data versus a much lower 54.37\% when trained with data split by games.
 
 \subsection{Input Representation} 
-When comparing different architectures, it is unavoidable to have slight differences in input representations. We adopt a widely used multi-channel tensor as our foundational baseline \cite{mcilroy2020aligning, silver2017alphazero}, which captures both the physical piece placements and necessary global state variables. However, we make a simple change by excluding the past 7 states in this input representation because Chess can be modeled as an alternating Markov game, where decisions made by the active player depend only on the current game state \cite{littman1994markov, tang2024maia}. Furthermore, it was shown to provide marginal benefits for static evaluation \cite{tang2024maia}. On top of that, it gives the network a chance to potentially derive chess rules regarding piece movements without prior knowledge of them.
+We adopt a widely used multi-channel tensor for CNNs \cite{mcilroy2020aligning, silver2017alphazero}, and make some adjustments for MLPs and Transformers. Specifically, the input to each of the models are as follows:
+
+\textbf{Spatial Feature Stack (CNNs):} The board state is represented as a stack of feature planes: $\mathbf{X}_{\text{stack}} \in \{0, 1\}^{19 \times 8 \times 8}$. The first 12 planes ($P_{1 \dots 12}$) represent the presence of each piece type respectively. Subsequently, the global state planes are added into the feature stack $\mathbf{X}_{stack} = \{ P_{1}, \dots, P_{12}, G, E \}$, where $G\in \{0, 1\}^{6 \times 8 \times 8}$ consist of constant planes filled with $1$s or $0$s indicating the side to move, castling rights and check status, and lastly, $E \in \{0, 1\}^{8 \times 8}$ is a one-hot encoding of the en-passant target square if any.
+
+\textbf{Flattened Bitboards (MLPs):} MLPs lack spatial inductive biases and operate on 1D vectors. Hence, we flatten the board into a 775-dimensional binary vector $\mathbf{x}_{\text{flat}} \in \{0,1\}^{775}$ by concatenating the 12 piece bitboards ($12 \times 64 = 768$) with a 7-dimensional vector $\mathbf{g} \in \{0, 1\}^{7}$ encoding the same information present in the spatial feature stack.
+
+\textbf{Spatial Tokenization (Transformers):} We deliberately avoid representing the board as a tokenized FEN string \cite{ruoss2024grandmaster} so that each individual square is explicitly tokenized. For instance, in the standard starting position (\texttt{rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1}), an entire rank of eight empty squares is compressed into a singular "8" token. This breaks the one-to-one mapping between sequence tokens and physical board coordinates, making it more difficult to observe any emergent geometry. Hence, we reshape the $19 \times 8 \times 8$ feature stack into a sequence of 64 tokens, where each token $\mathbf{t}_i \in \{0, 1\}^{19}$ represents the complete state of a single square.
+
+In our input representation, we did not include the past 7 game states. This is because Chess can be modeled as an alternating Markov game, where decisions made by the active player depend only on the current game state \cite{littman1994markov, tang2024maia}. Furthermore, it was shown to provide marginal benefits for static evaluation \cite{tang2024maia}. On top of that, it gives us the chance to explore if the network can derive chess geometry regarding piece movements without prior knowledge of them.
 
 \end{document}
