@@ -116,4 +116,14 @@ In our input representation, we did not include the past 7 game states. This is 
 
 where $\mathbf{W}^{(l)}$ and $\mathbf{b}^{(l)}$ are the learned weight matrix and bias vector for layer $l$, and $\mathbf{h}^{(0)} = \mathbf{x}_{\text{flat}}$. We experimented with different depths and widths, but found that these modifications yielded diminishing returns (see Appendix \ref{mlp_details}).
 
+\textbf{Convolutional Neural Networks.}\enskip We implement a deep residual neural network (ResNet) \cite{he2016deep} with Squeeze-and-Excitation (SE) blocks \cite{hu2018squeeze} similar to older versions of Lc0. Each ResNet block contains two $3 \times 3$ convolutional layers, each followed by a Batch Norm and ReLU function \cite{nair2010rectified}. Let this two-layer convolutional sequence be denoted as $\mathcal{F}$. To regularize the network depth, we apply Stochastic Depth \cite{huang2016deep} (denoted as DropPath) before the residual connection. The complete forward pass for the $l$-th residual block is defined as:
+
+\begin{equation}
+\mathbf{h}^{(l)} = \text{ReLU}\Big( \text{DropPath}\big(\text{SE}(\mathcal{F}(\mathbf{h}^{(l-1)}, \mathbf{W}^{(l)}))\big) + \mathbf{h}^{(l-1)} \Big)
+\end{equation}
+
+where $\mathbf{h}^{(l-1)}$ is the input feature map to the block, $\mathbf{W}^{(l)}$ represents the convolutional weights, and $\text{SE}(\cdot)$ represents the channel-wise recalibration function. 
+
+We use global average pooling in both our SE blocks and the final classifier head, as we found this to outperform other methods in our initial experiments (see Appendix \ref{cnn_classifier_head}). For more details see Appendix \ref{cnn_details}.
+
 \end{document}
