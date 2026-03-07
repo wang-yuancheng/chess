@@ -36,10 +36,7 @@
 \author{
     \textbf{Wang Yuancheng} \\
     Nanyang Technological University \\
-    \textit{Undergraduate Research Experience on CAmpus (URECA)} \\
-    \textit{Supervisor: A/P He Ying}
 }
-\date{\today}
 
 \begin{document}
 
@@ -108,22 +105,27 @@ We adopt a widely used multi-channel tensor for CNNs \cite{mcilroy2020aligning, 
 In our input representation, we did not include the past 7 game states. This is because Chess can be modeled as an alternating Markov game, where decisions made by the active player depend only on the current game state \cite{littman1994markov, tang2024maia}. Furthermore, it was shown to provide marginal benefits for static evaluation \cite{tang2024maia}. On top of that, it gives us the chance to explore if the network can derive chess geometry regarding piece movements without prior knowledge of them.
 
 \subsection{Model Architectures} 
-\textbf{MLPs.}\enskip To establish a baseline, we implement a standard sequential MLP. We deliberately keep the architecture straightforward to observe how a network learn using just raw parameter capacity. It was no surprise that the model overfitted very quickly in initial experiments. Hence, we add Batch Normalization \cite{ioffe2015batch} and Dropout \cite{srivastava2014dropout} after each layer shown here: 
-
+\textbf{Multi-Layer Perceptrons.}\enskip To establish a baseline, we implement a standard sequential MLP. We deliberately keep the architecture straightforward to observe how a network learn using just raw parameter capacity. It was no surprise that the model overfitted very quickly in initial experiments. Hence, we add Batch Normalization \cite{ioffe2015batch} and Dropout \cite{srivastava2014dropout} after each layer as defined below:
 \begin{equation}
 \mathbf{h}^{(l)} = \text{Dropout}(\text{ReLU}(\text{BN}(\mathbf{W}^{(l)}\mathbf{h}^{(l-1)} + \mathbf{b}^{(l)})))
 \end{equation}
-
 where $\mathbf{W}^{(l)}$ and $\mathbf{b}^{(l)}$ are the learned weight matrix and bias vector for layer $l$, and $\mathbf{h}^{(0)} = \mathbf{x}_{\text{flat}}$. We experimented with different depths and widths, but found that these modifications yielded diminishing returns (see Appendix \ref{mlp_details}).
 
-\textbf{Convolutional Neural Networks.}\enskip We implement a deep residual neural network (ResNet) \cite{he2016deep} with Squeeze-and-Excitation (SE) blocks \cite{hu2018squeeze} similar to older versions of Lc0. Each ResNet block contains two $3 \times 3$ convolutional layers, each followed by a Batch Norm and ReLU function \cite{nair2010rectified}. Let this two-layer convolutional sequence be denoted as $\mathcal{F}$. To regularize the network depth, we apply Stochastic Depth \cite{huang2016deep} (denoted as DropPath) before the residual connection. The complete forward pass for the $l$-th residual block is defined as:
-
+\textbf{Convolutional Neural Networks (CNNs).}\enskip We implement a deep residual neural network (ResNet) \cite{he2016deep} with Squeeze-and-Excitation (SE) blocks \cite{hu2018squeeze}, similar to older versions of Lc0. The raw input state $\mathbf{X}_{\text{stack}} \in \{0, 1\}^{19 \times 8 \times 8}$ is first projected to a higher-dimensional feature space via an initial convolution. It is then passed through a series of residual blocks. Each block contains two $3 \times 3$ convolutional layers.
+Let this main convolutional branch be denoted as $\mathcal{F}$, where $\mathcal{F}(\mathbf{x}) = \text{BN}(\mathbf{W}_2 * \text{ReLU}(\text{BN}(\mathbf{W}_1 * \mathbf{x})))$. Then, an SE block is applied to the output of $\mathcal{F}$. Additionally, we apply Stochastic Depth \cite{huang2016deep} ($\text{DropPath}$) to this residual branch during training to regularize the network. The forward pass for the $l$-th residual block is formally defined as:
 \begin{equation}
 \mathbf{h}^{(l)} = \text{ReLU}\Big( \text{DropPath}\big(\text{SE}(\mathcal{F}(\mathbf{h}^{(l-1)}, \mathbf{W}^{(l)}))\big) + \mathbf{h}^{(l-1)} \Big)
 \end{equation}
+where $\mathbf{h}^{(l-1)}$ is the intermediate feature map from the previous layer. We use global average pooling in both our SE blocks and the final classifier head, as this approach outperformed standard feature flattening in our initial experiments (see Appendix \ref{cnn_classifier_head}).
 
-where $\mathbf{h}^{(l-1)}$ is the input feature map to the block, $\mathbf{W}^{(l)}$ represents the convolutional weights, and $\text{SE}(\cdot)$ represents the channel-wise recalibration function. 
-
-We use global average pooling in both our SE blocks and the final classifier head, as we found this to outperform other methods in our initial experiments (see Appendix \ref{cnn_classifier_head}). For more details see Appendix \ref{cnn_details}.
+\textbf{Transformers.}\enskip We implement an Encoder-only Transformer without providing it any information on how each square relates to another. First, these tokens $\mathbf{t}_i \in \{0, 1\}^{19}$ are linearly projected into a higher-dimensional embedding space $D$, followed by a ReLU and Layer Normalization. However, as chess is not permutation invariant but self-attention is, we then initialize the network with randomized 1D positional embeddings $\mathbf{P} \in \mathbb{R}^{64 \times D}$ to allow the independent discovery of square relationships. The sequence then is passed through a tower of Transformer encoder blocks. Here, we utilize DeepNorm \cite{wang2024deepnet} over PreNorm as we found it yielded better results and maintained similar training stability (see Appendix \ref{transformer_norm}). 
+Let MHA denote Multi-Head Self-Attention and FFN denote the Feed-Forward Network. The forward pass for the $l$-th encoder block is formally defined as:
+\begin{equation}
+\begin{aligned}
+\mathbf{h}' &= \text{LN}\big(\mathbf{h}^{(l-1)} + \alpha \cdot \text{Dropout}(\text{MHA}(\mathbf{h}^{(l-1)}))\big) \\
+\mathbf{h}^{(l)} &= \text{LN}\big(\mathbf{h}' + \alpha \cdot \text{Dropout}(\text{FFN}(\mathbf{h}'))\big)
+\end{aligned}
+\end{equation}
+where $\text{LN}$ is Layer Normalization and $\alpha$ is the DeepNorm residual scaling factor derived from the total network depth. Finally, the sequence of 64 updated square tokens is aggregated via global average pooling to produce a new state representation, which is then passed to a standard linear classification head (see Appendix \ref{transformer_details}).
 
 \end{document}
