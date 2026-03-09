@@ -135,4 +135,21 @@ We use standard top-1 accuracy to evaluate models. However, top-1 accuracy alone
 
 \textbf{Game state complexity.}\enskip Different board states will have varying degrees of board complexity. As the game progresses, the complexity of the board typically decreases as players capture more pieces. To quantify this progression, we use Non-Pawn Material (NPM) (see Appendix \ref{non_pawn_material}) to describe the complexity of any given game state. A high NPM suggests a more complex board state and a low NPM suggests a less complex board state. By plotting top-1 accuracy against NPM, we can observe how the performance of different architectures behaves under varying levels of board complexities.
 
+\section{Results}
+We conducted extensive architectural ablations across all 3 architectural types (MLPs, CNNs, Transformers) to identify the optimal configurations (see Appendix \ref{architectures_and_hyperparameters}). To ensure a rigorous comparative analysis of emergent geometry, we select the following baseline models for all subsequent experiments: MLP-5, SE-ResNet-16, and Transformer-6. 
+
+\begin{table}[htbp]
+\centering
+\caption{Performance comparison of selected baseline models.}
+\label{tab:main_results}
+\vspace{2mm}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Architecture}  & \textbf{Params} & \textbf{Top-1 Acc.} & \textbf{Off-by-1 Acc.} & \textbf{MAE} & \textbf{Positional Acc.} \\ \midrule
+MLP-5 & 1.32M & 58.18\% & 88.05\% & 0.622 & 56.66\% \\
+SE-ResNet-16 & 1.22M & 69.87\% & 94.72\% & 0.384 & 70.08\% \\
+Transformer-6 & 1.21M & \textbf{73.04\%} & \textbf{95.83\%} & \textbf{0.333}& \textbf{73.21\%} \\ \bottomrule
+\end{tabular}
+\end{table}
+
 \end{document}
