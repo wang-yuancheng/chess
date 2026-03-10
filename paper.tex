@@ -152,4 +152,61 @@ Transformer-6 & 1.21M & \textbf{73.04\%} & \textbf{95.83\%} & \textbf{0.333}& \t
 \end{tabular}
 \end{table}
 
+% --- Section 7: Acknowledgments  ---
+\section*{Acknowledgments}
+This research project was supported by Nanyang Technological University under the URECA Undergraduate Research Programme.
+
+% --- Section 8: References  ---
+\bibliographystyle{plain} 
+\bibliography{references}
+\newpage
+
+% --- APPENDIX STARTS HERE ---
+\appendix
+\label{sec:appendix_main}
+\section{Experimental Setup}
+Models are trained on 1x NVIDIA RTX 3070 8GB.
+
+\subsection{Evaluation and Interpretability}
+
+\textbf{Mean Absolute Error.}\enskip $MAE = \frac{1}{N} \sum_{i=1}^{N} | y_i - \hat{y}_i |$, where $N$ is the total number of samples, $y_i$ is the true label (ground truth) for sample $i$ and $\hat{y}_i$ is the predicted label for sample $i$.
+
+\label{non_pawn_material}
+\textbf{We use a Non-Pawn Material}\enskip $NPM = N \times 1 + B \times 1 + R \times 2 + Q \times 4$, where Knights ($N$) and Bishops ($B$) are assigned a weight of 1, Rooks ($R$) a weight of 2, and Queens ($Q$) a weight of 4. Pawns are explicitly assigned a weight of 0.
+
+\subsubsection{Gaussian Label Smoothing}
+\label{label_smoothing}
+The centipawn score $E(s)$ is mapped to $c(E) \in [0, 6]$ with this linear interpolation function:
+\begin{equation}
+c(E) =
+\begin{cases}
+\max\left(0.0, 0.5 - \frac{E - 500}{200}\right) & \text{if } E \ge 500 \\
+1.5 - \frac{E - 300}{200} & \text{if } 300 \le E < 500 \\
+2.5 - \frac{E - 100}{200} & \text{if } 100 \le E < 300 \\
+3.5 - \frac{E + 100}{200} & \text{if } -100 \le E < 100 \\
+4.5 - \frac{E + 300}{200} & \text{if } -300 \le E < -100 \\
+5.5 - \frac{E + 500}{200} & \text{if } -500 < E \le -300 \\
+\min\left(6.0, 5.5 - \frac{E + 500}{200}\right) & \text{if } E \le -500
+\end{cases}
+\end{equation}
+Then, we use a normalized Gaussian distribution centered at $c(E)$ to generate the soft target probability distribution of the 7 classes:
+\begin{equation}
+p_i = \frac{\exp\left( - \frac{(i - c(E))^2}{2\sigma^2} \right)}{\sum_{j=0}^{6} \exp\left( - \frac{(j - c(E))^2}{2\sigma^2} \right)}
+\end{equation}
+The networks are trained to minimize the cross-entropy loss between its predictions and this soft target distribution. Here, we choose $\sigma = 0.6$ over standard label smoothing ($\sigma = 0.1$) to ensure the true target class retains a majority of the probability mass ($\approx66\%$) and also allocates a meaningful weight ($\approx16.5\%$ each) to the immediate adjacent classes. This gave better results as shown below. 
+\begin{table}[htbp]
+\centering
+\caption{Ablation on labeling methods. Experiments are run with the baseline SE-ResNet architecture.}
+\label{tab:label_ablation}
+\vspace{2.5mm}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Labeling Method} & \textbf{Top-1 Acc.} & \textbf{$\Delta$} \\ \midrule
+Gaussian Smoothing ($\sigma=0.6$) & \textbf{69.39\%} & -- \\
+Uniform Smoothing ($\epsilon=0.1$) & 69.02\% & -0.37\% \\
+Hard Labels (Cross-Entropy) & 68.84\% & -0.55\% \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
 \end{document}
