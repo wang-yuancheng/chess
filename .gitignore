@@ -10,10 +10,11 @@ deprecated/
 ccrl/
 dataset_clean/
 dataset_ready/
-dataset_bitmaps/
+dataset_ready_probe/
 models
-dataset_planes/
-dataset_planes_cp/
 dataset_bitmaps_cp/
+dataset_planes_cp/
+dataset_bitmaps_cp_probe/
+dataset_planes_cp_probe/
 experiments/results/old/
 chess_games
