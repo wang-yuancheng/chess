@@ -18,3 +18,4 @@ dataset_bitmaps_cp_probe/
 dataset_planes_cp_probe/
 experiments/results/old/
 chess_games
+*.svg
