@@ -208,5 +208,273 @@ Hard Labels (Cross-Entropy) & 68.84\% & -0.55\% \\ \bottomrule
 \end{tabular}
 \end{table}
 
+\subsection{Architectures and Hyperparameters}
+\label{architectures_and_hyperparameters}
+LR Scheduler: Cosine Annealing \cite{loshchilov2016sgdr} (T\_max = 100, $\eta_{\text{min}} = 10^{-6}$)
+Epochs: 100
+Loss: Standard Cross-Entropy Loss
+Optimization: AdamW optimizer \cite{loshchilov2017decoupled} with a weight decay of 0.01 and an initial learning rate of 0.001.
+
+\subsubsection{MLP}
+\label{mlp_details}
+We tested a larger 1.98M parameter variant, but it yielded only a marginal +0.98\% accuracy gain over the 1.32M model. Therefore, the 1.32M model was selected to strictly adhere to the capacity-matching constraint.
+
+\begin{table}[htbp]
+\centering
+\caption{Ablation on MLP depth and width. Hidden dimensions represent the layer sizes between the 775-dimensional flattened input and the 7-class output.}
+\label{tab:mlp_ablations}
+\vspace{2mm}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+\textbf{Model} & \textbf{Hidden Dimensions} & \textbf{Params} & \textbf{Top-1 Acc.} \\ \midrule
+\textbf{MLP-5} & \textbf{[512, 512, 512, 512, 256]} & \textbf{1.32M} & \textbf{58.18\%} \\ \midrule
+MLP-5\_256 & [1024, 512, 512, 512, 256] & 1.98M & 59.16\% \\
+MLP-5\_64 & [1024, 512, 256, 128, 64] & 1.50M & 58.15\% \\
+MLP-4\_128 & [1024, 512, 256, 128] & 1.49M & 57.79\% \\
+MLP-3\_256 & [1024, 512, 256] & 1.46M & 57.35\% \\ \bottomrule
+\end{tabular}
+\end{table}
+
+Note: there's unusual dropout rates in MLP, say we used 0.2 standard and also higher but not much changes: Given the limited dataset size relative to model capacity (1.2M params), we observed significant overfitting. We mitigated this via aggressive Dropout for MLP ($p=0.4$).
+
+\subsubsection{CNN}
+\label{cnn_details}
+DropPath survival probabilities linearly decreasing from 1.0 at the first block to 0.8 at the final block., no. of residual blocks, channel depth $C=64$, SE reduction ratio of $r=8$, projecting to a 256-dimensional hidden layer with a Dropout rate of 0.5, and finally projecting to the 7-class logits
+
+\begin{table}[htbp]
+\centering
+\caption{Ablation studies on the CNN architecture. The baseline is an SE-ResNet with 64 channels, 10 residual blocks, and a dense flatten head. ``w/o Bottleneck'' refers to the removal of the $1 \times 1$ convolution that reduces channel dimensions prior to the classifier head.}
+\label{tab:cnn_ablations}
+\vspace{2mm}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Exp.} & \textbf{Model Variation} & \textbf{Params} & \textbf{$\Delta$} & \textbf{Off-by-1 Acc.} \\ \midrule
+\textbf{Base} & \textbf{SE-ResNet-10 (64c)} & \textbf{1.29M} & \textbf{69.39\%} & \textbf{--} \\ \midrule
+Abl. 1 & w/o SE Block (Standard ResNet) & 1.28M & 68.85\% & -0.54\% \\
+Abl. 2 & w/o Bottleneck ($1 \times 1$ Conv) & 1.81M & 69.18\% & -0.21\% \\
+Abl. 3 & SE-ResNet-10 (128c) & 3.55M & 69.23\% & -0.16\% \\
+Abl. 4 & SE-ResNet-10 (32c) & 721K & 68.31\% & -1.08\% \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\label{cnn_classifier_head}
+\begin{table}[htbp]
+\centering
+\caption{Ablation on CNN classifier heads and network depth. Replacing the dense flatten operation with pooling drastically reduces the classifier's input dimensionality and parameter count. This parameter efficiency allows scaling the network to 16 residual blocks while maintaining the $\approx$1.2M parameter constraint, ultimately yielding the highest top-1 accuracy.}
+\label{tab:seresnet_pooling}
+\vspace{2mm}
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Classifier Head} & \textbf{Blocks} & \textbf{Params} & \textbf{Head Input} & \textbf{Top-1 Acc.} \\ \midrule
+\textbf{SE-ResNet-16} & \textbf{Global Avg Pool} & \textbf{16} & \textbf{1.22M} & \textbf{32} & \textbf{69.87\%} \\ \midrule
+SE-ResNet-10\_F & Flatten & 10 & 1.29M & 2048 & 69.39\% \\
+SE-ResNet-10\_SP & Spatial Pool $2 \times 2$ & 10 & 798K & 128 & 69.72\% \\
+SE-ResNet-10\_GAP & Global Avg Pool & 10 & 774K & 32 & 69.75\% \\
+SE-ResNet-16\_SP & Spatial Pool $2 \times 2$ & 16 & 1.25M & 128 & 69.65\% \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsubsection{Transformer}
+\label{transformer_details}
+Transformer Hyperparameters, such as $\text{embed\_dim} = 128$, $\text{num\_heads} = 4$, $\text{ffn\_dim} = 512$, $\text{num\_blocks} = 6$
+The $\alpha$ calculation: The formula $\alpha = (2N)^{-0.25}$
+
+\label{transformer_norm}
+\begin{table}[htbp]
+\centering
+\caption{Ablation on Transformer normalization schemes and embedding dimensions. Transformer-6 with deepnorm and 4 heads was selected as the baseline to adhere to the $\approx$1.2M parameter constraint. Scaling up the parameter capacity (up to 3.22M) resulted in slight overfitting, decreasing top-1 accuracy compared to the optimal 1.21M baseline.}
+\label{tab:transformer_ablations}
+\vspace{2mm}
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Norm Type} & \textbf{Heads} & \textbf{Embed Dim} & \textbf{Params} & \textbf{Top-1 Acc.} \\ \midrule
+\textbf{Transformer-6} & \textbf{DeepNorm} & \textbf{4} & \textbf{128} & \textbf{1.21M} & \textbf{73.04\%} \\ \midrule
+Transformer-6\_PN & PreNorm & 4 & 128 & 1.21M & 70.77\% \\
+Transformer-6\_6 & DeepNorm & 6 & 192 & 2.11M & 72.37\% \\
+Transformer-6\_8 & DeepNorm & 8 & 256 & 3.22M & 72.59\% \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
+\newpage
+\section{Training Curves}
+\begin{figure}[htbp]
+\centering
+% ACCURACY PLOTS 
+% --- Train Accuracy ---
+\begin{subfigure}{0.48\textwidth}
+    \centering
+    \begin{tikzpicture}[trim axis left, trim axis right]
+    \begin{axis}[
+        width=4.5cm,
+        height=4.5cm,
+        xlabel={Epoch},
+        ylabel={Train Accuracy},
+        xmin=0, xmax=10,
+        ymax=0.7,
+        xtick={0, 5, 10},
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        axis lines*=left,
+        thick,
+        legend columns=-1, 
+        legend style={draw=none, fill=none, font=\small},
+        legend to name=shared_legend_learning_curves 
+    ]
+    
+    \addplot[color=transcolor, mark=*, mark size=1pt] 
+        table[x=epoch, y=train_acc, col sep=comma] {./data/transformer/transformer_v1_learning_curves.csv};
+    \addlegendentry{Transformer}
+    \addplot[color=cnncolor, dashed, mark=square*, mark size=1pt] 
+        table[x=epoch, y=train_acc, col sep=comma] {./data/cnn/cnn_learning_curves.csv};
+    \addlegendentry{CNN}
+    \addplot[color=mlpcolor, dotted, mark=triangle*, mark size=1.5pt] 
+        table[x=epoch, y=train_acc, col sep=comma] {./data/mlp/mlp_learning_curves.csv};
+    \addlegendentry{MLP}
+    
+    \end{axis}
+    \end{tikzpicture}
+    \label{fig:sub_train_acc}
+\end{subfigure}\hfill
+% --- Validation Accuracy ---
+\begin{subfigure}{0.48\textwidth}
+    \centering
+    \begin{tikzpicture}[trim axis left, trim axis right]
+    \begin{axis}[
+        width=4.5cm,
+        height=4.5cm,
+        xlabel={Epoch},
+        ylabel={Val Accuracy},
+        xmin=0, xmax=10,      
+        ymax=0.7,
+        xtick={0, 5, 10},
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        axis lines*=left,
+        thick,
+    ]
+    
+    \addplot[color=transcolor, mark=*, mark size=1pt] 
+        table[x=epoch, y=val_acc, col sep=comma] {./data/transformer/transformer_learning_curves.csv};
+    \addplot[color=cnncolor, dashed, mark=square*, mark size=1pt] 
+        table[x=epoch, y=val_acc, col sep=comma] {./data/cnn/cnn_learning_curves.csv};
+    \addplot[color=mlpcolor, dotted, mark=triangle*, mark size=1.5pt] 
+        table[x=epoch, y=val_acc, col sep=comma] {./data/mlp/mlp_learning_curves.csv};
+        
+    \end{axis}
+    \end{tikzpicture}
+    \label{fig:sub_val_acc}
+\end{subfigure}
+
+% --- SHARED LEGEND ---
+\vspace{-0.2cm}
+\begin{center}
+\ref*{shared_legend_learning_curves}
+\end{center}
+\caption{Training accuracy (left) and validation accuracy (right) for the first 10 epochs. We see that CNNs have the highest initial training and validation accuracy. Accuracies for transformers slowly catch up and overtake CNNs while that of MLPs fall far behind.}
+\label{fig:accuracy_curves}
+\end{figure}
+
+% LOSS PLOTS 
+\begin{figure}[htbp]
+\centering
+% --- MLP Loss ---
+\begin{subfigure}{0.32\textwidth}
+    \centering
+    \begin{tikzpicture}[trim axis left, trim axis right]
+    \begin{axis}[
+        width=\linewidth,
+        height=4.5cm,
+        title={MLP},
+        xlabel={Epoch},
+        ylabel={Loss},
+        xmin=0, xmax=100,
+        ymin=0.90, ymax=1.48,
+        xtick={0, 50, 100},
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        axis lines*=left,
+        thick,
+        legend columns=-1, 
+        legend style={draw=none, fill=none, font=\small},
+        legend to name=shared_legend_loss_curves 
+    ]
+    
+    \addplot[color=blue, mark=none, thick] 
+        table[x=epoch, y=train_loss, col sep=comma] {./data/mlp/mlp_learning_curves.csv};
+    \addlegendentry{Train Loss}
+    \addplot[color=red, dashed, mark=none, thick] 
+        table[x=epoch, y=val_loss, col sep=comma] {./data/mlp/mlp_learning_curves.csv};
+    \addlegendentry{Validation Loss}
+    
+    \end{axis}
+    \end{tikzpicture}
+    \label{fig:sub_mlp_loss}
+\end{subfigure}\hfill
+% --- CNN Loss ---
+\begin{subfigure}{0.32\textwidth}
+    \centering
+    \begin{tikzpicture}[trim axis left, trim axis right]
+    \begin{axis}[
+        width=\linewidth,
+        height=4.5cm,
+        title={CNN},
+        xlabel={Epoch},
+        xmin=0, xmax=100,
+        ymin=0.90, ymax=1.48,
+        xtick={0, 50, 100},
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        axis lines*=left,
+        thick,
+    ]
+    
+    \addplot[color=blue, mark=none, thick] 
+        table[x=epoch, y=train_loss, col sep=comma] {./data/cnn/cnn_learning_curves.csv};
+    \addplot[color=red, dashed, mark=none, thick] 
+        table[x=epoch, y=val_loss, col sep=comma] {./data/cnn/cnn_learning_curves.csv};
+        
+    \end{axis}
+    \end{tikzpicture}
+    \label{fig:sub_cnn_loss}
+\end{subfigure}\hfill
+% --- Transformer Loss ---
+\begin{subfigure}{0.32\textwidth}
+    \centering
+    \begin{tikzpicture}[trim axis left, trim axis right]
+    \begin{axis}[
+        width=\linewidth,
+        height=4.5cm,
+        title={Transformer},
+        xlabel={Epoch},
+        xmin=0, xmax=100,
+        ymin=0.90, ymax=1.48,
+        xtick={0, 50, 100},
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        axis lines*=left,
+        thick,
+    ]
+    
+    \addplot[color=blue, mark=none, thick] 
+        table[x=epoch, y=train_loss, col sep=comma] {./data/transformer/transformer_learning_curves.csv};
+    \addplot[color=red, dashed, mark=none, thick] 
+        table[x=epoch, y=val_loss, col sep=comma] {./data/transformer/transformer_learning_curves.csv};
+        
+    \end{axis}
+    \end{tikzpicture}
+    \label{fig:sub_trans_loss}
+\end{subfigure}
+
+% --- SHARED LEGEND ---
+\vspace{-0.2cm}
+\begin{center}
+\ref*{shared_legend_loss_curves}
+\end{center}
+
+\caption{Per-architecture learning curves over 100 epochs. By epoch 75, convergence generally stabilized and the train and validation accuracy gaps here are 3.37\% for the MLP (left), 5.86\% for the CNN (middle), and 2.90\% for the Transformer (right).}
+\label{fig:train_val_loss_curves}
+\end{figure}
 
 \end{document}
