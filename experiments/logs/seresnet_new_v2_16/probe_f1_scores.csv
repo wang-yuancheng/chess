@@ -1,0 +1,4 @@
+Model_Key,Weights_File,Piece,Final_F1
+CNN,seresnet_new_v2_16,Bishop,79.71%
+CNN,seresnet_new_v2_16,Rook,78.35%
+CNN,seresnet_new_v2_16,Queen,77.13%
