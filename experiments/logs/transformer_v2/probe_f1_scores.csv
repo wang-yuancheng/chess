@@ -1,4 +1,6 @@
 Model_Key,Weights_File,Piece,Final_F1
+TRANSFORMER_8H,transformer_v2,Knight,96.83%
 TRANSFORMER_8H,transformer_v2,Bishop,91.19%
 TRANSFORMER_8H,transformer_v2,Rook,87.89%
 TRANSFORMER_8H,transformer_v2,Queen,86.84%
+,,,
