@@ -1,0 +1,5 @@
+Model_Key,Weights_File,Piece,Final_F1
+RAW_BITMAPS,raw_bitmaps,Knight,95.97%
+RAW_BITMAPS,raw_bitmaps,Bishop,83.94%
+RAW_BITMAPS,raw_bitmaps,Rook,83.10%
+RAW_BITMAPS,raw_bitmaps,Queen,81.40%
