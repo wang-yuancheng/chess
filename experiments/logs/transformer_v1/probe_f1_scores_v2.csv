@@ -1,0 +1,5 @@
+Model_Key,Weights_File,Piece,Test_F1
+TRANSFORMER,transformer_v1,Knight,81.73%
+TRANSFORMER,transformer_v1,Bishop,71.71%
+TRANSFORMER,transformer_v1,Rook,67.75%
+TRANSFORMER,transformer_v1,Queen,65.72%

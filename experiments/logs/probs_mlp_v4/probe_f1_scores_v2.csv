@@ -1,0 +1,5 @@
+Model_Key,Weights_File,Piece,Test_F1
+MLP,probs_mlp_v4,Knight,52.57%
+MLP,probs_mlp_v4,Bishop,43.75%
+MLP,probs_mlp_v4,Rook,50.46%
+MLP,probs_mlp_v4,Queen,50.86%
