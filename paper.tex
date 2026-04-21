@@ -293,7 +293,24 @@ polysemanticity
 % If required: Note: While the 4-head model is used for strict parameter-matched performance metrics, visualizations are derived from an 8-head variant. The expanded attention subspace reduces polysemanticity, allowing the network to cleanly disentangle distinct spatial geometries (e.g., orthogonal lines vs. knight jumps). OR Notably, for the qualitative visualization of attention mechanisms, we utilize an 8-head variant of our Transformer baseline to better disentangle distinct spatial motifs.
 
 \subsection{Latent Space Representation}
-[Dimensionality Reduction Analysis, PCA]
+
+\subsection{Mean Spatial Reach}
+\begin{table}[htbp]
+\centering
+\caption{Ablation of Confounding Variables. \textit{Binned $r$} represents the magnitude of the Relative Performance Difference (Accuracy Delta ($\Delta_{Acc}$) trend (15 quantile bins), while \textit{Raw $p$} represents the unbinned statistical significance across all $N$ discrete games. Values with $p < 0.05$ are bolded to indicate statistical significance.}
+\label{tab:ablation_main}
+\vspace{2mm}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+& & \multicolumn{2}{c}{\textbf{MSR (Spatial)}} & \multicolumn{2}{c}{\textbf{Legal Moves (Non-Spatial)}} \\
+\cmidrule(lr){3-4} \cmidrule(l){5-6} 
+\textbf{Ablation Stage} & \textbf{N} & \textbf{Binned $r$} & \textbf{Raw $p$} & \textbf{Binned $r$} & \textbf{Raw $p$} \\ \midrule
+Test 1 (Uncontrolled) & 595,597 & 0.501 & \textbf{<0.001} & 0.514 & \textbf{<0.001} \\
+Test 2 (+ Material Fixed) & 104,565 & 0.566 & \textbf{0.029} & 0.254 & 0.110 \\
+Test 3 (+ Piece Count Fixed) & 23,478 & 0.313 & 0.055 & 0.216 & 0.230 \\
+Test 4 (+ Sliding Ratio Fixed)& 7,871 & 0.433 & \textbf{0.015} & 0.362 & 0.210 \\ \bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Concept Linear Probing}
 \begin{table}[H]
