@@ -19,3 +19,4 @@ dataset_planes_cp_probe/
 experiments/results/old/
 chess_games
 *.svg
+chess_spatial_benchmark_master_knightslide.csv
