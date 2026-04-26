@@ -677,4 +677,32 @@ Transformer-6\_8 & DeepNorm & 8 & 256 & 3.22M & 72.59\% \\ \bottomrule
 \label{fig:train_val_loss_curves}
 \end{figure}
 
+\newpage
+\section{Statistical Robustness Checks}
+\begin{table}[htbp]
+\centering
+\caption{Sensitivity Analysis of the Strict Match (Test 4) across varying definitions of the midgame, alongside the KnightSlide placebo test.}
+\label{tab:robustness_checks}
+\vspace{2mm}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+& & \multicolumn{2}{c}{\textbf{MSR (Spatial)}} & \multicolumn{2}{c}{\textbf{Legal Moves (Non-Spatial)}} \\
+\cmidrule(lr){3-4} \cmidrule(l){5-6} 
+\textbf{Test 4 Variant} & \textbf{N} & \textbf{Binned $r$} & \textbf{Raw $p$} & \textbf{Binned $r$} & \textbf{Raw $p$} \\ \midrule
+\textbf{Reported Midgame} & 7,871 & 0.433 & \textbf{0.015} & 0.362 & 0.210 \\
+Relaxed Bounds & 49,928 & 0.788 & \textbf{<0.001} & 0.456 & 0.084 \\
+Strict Bounds & 1,044 & 0.619 & \textbf{0.001} & 0.784 & \textbf{0.002} \\ \midrule
+Knight Placebo Control & 19,091 & 0.220 & 0.220 & 0.067 & 0.620 \\ \bottomrule
+\end{tabular}
+\end{table}
+Normal Middlegame: filter positions where material count is between 20 and 30, then from those keep positions where piece count is between 16 and 22.
+
+Relaxed Middlegame: filter positions where material count is between 15 and 35, then from those keep positions where piece count is between 14 and 24.
+
+Strict Middlegame: filter positions where material count is between 22 and 28, then from those keep positions where piece count is between 18 and 20.
+
+Unbinned Pearson Correlation: OLS regression formula $$r = \frac{\sum_{i=1}^{N} (MSR_i - \overline{MSR})(\Delta_i - \overline{\Delta})}{\sqrt{\sum_{i=1}^{N} (MSR_i - \overline{MSR})^2 \sum_{i=1}^{N} (\Delta_i - \overline{\Delta})^2}}$$ 
+Variable Definitions: Define $N$ (total number of perfectly matched games), $MSR_i$ (Mean Spatial Reach of board $i$), and $\Delta_i$ (the $-1, 0, 1$ performance delta between the Transformer and CNN).
+\end{document}
+
 \end{document}
