@@ -141,14 +141,35 @@ We use standard top-1 accuracy to evaluate models. However, top-1 accuracy alone
 \textbf{Game state complexity.}\enskip Different board states will have varying degrees of board complexity. As the game progresses, the complexity of the board typically decreases as players capture more pieces. To quantify this progression, we use Non-Pawn Material (NPM) (see Appendix \ref{non_pawn_material}) to describe the complexity of any given game state. A high NPM suggests a more complex board state and a low NPM suggests a less complex board state. By plotting top-1 accuracy against NPM, we can observe how the performance of different architectures behaves under varying levels of board complexities.
 
 \subsubsection{Interpretability Techniques}
+\textbf{Proving and exploring Emergent Geometry}: Saliency Maps, Grad-Cam, Transformer attention weights/map, linear probing
 
-Gradient analysis
-Saliency Maps 
-Grad-Cam
+\textbf{Linear probing for legal moves}: We did: Multi-Label (which sklearn is bad at, sklearn good at binary/multiclass) Logistic Regression using Gradient Descent. Train on both positive samples and negative samples 50-50, with train test split. CNN architecture, the latent representations were extracted at the output of the final 1x1 convolutional bottleneck layer, immediately prior to the global average pooling layer. This location captures the deepest 8x8 spatial feature maps (32 channels) before the spatial dimensions are collapsed into a flat vector.
+Transformer: For the Transformer model, the hook was placed at the output of the final encoder block, just before the sequence representation is averaged across tokens. This preserves the full 64-token sequence representation, capturing the rich, self-attention-driven spatial geometry before it is compressed by the classification head.
+MLP: For the Multilayer Perceptron, the intermediate activations were extracted after the second 512-dimensional hidden layer block (specifically, after the dropout layer). This captures the network's latent space at its midpoint, prior to the dimensionality reduction in the subsequent 256-dimensional bottleneck layer. 
+Linear probe is trained on 50\% the target piece to probe and 50\% non target piece (can be empty) which we just feed all moves on the position are non legal if its not the target piece. When we attempted to train the linear probe with random pieces and the probe each piece, while the accuracy hierarchy is still the same, the resulting linear probe maps we visualize show messy and "combined" rays/patches for all pieces, so not that good.
 
-Transformer weights (or use sparse autoencoder)
-Dimensionality Reduction
-Linear probing for legal moves
+\textbf{Failure analysis}: We focus on 3 main situations. Mention that with more data these information might be solved better?
+1. Transformer is Correct (+ MLP doesn't matter) and CNN is Wrong ($\ge 3$ classes).
+Guess: CNN is bad a long range piece dynamics.
+2. CNN is Correct (+ MLP doesn't matter) and Transformer is Wrong ($\ge 3$ classes).
+Guess: Transformer looks at everything at once. Sometimes, the Transformer's self-attention gets distracted by a piece and misses the overall picture (such as no. of pieces)
+3. Transformer and CNN are Correct, but MLP is Catastrophically Wrong.
+Guess: 2D information is important but MLP flattens to 1D
+% Operating under a strict data budget acts as a stress test for representation capacity, forcing the architectures to rely heavily on their intrinsic structural biases.
+
+\textbf{Mean Spatial Reach}:
+We want to see the performance of CNNs versus Transformers on positions with varying spatial distances. We could have simply used the average number of legal moves on the board to quantify combinatorial complexity. However, it does not tell us the distances required to evaluate long-range dependencies. Hence we introduce Mean Spatial Reach.
+
+*need to define some difficult to express concepts that do not have widely used ml terminology*
+Keywords: Geometry, Control of Space, 
+
+Algorithm: For every piece on the board, calculate the Chebyshev distance from the piece to every square it currently attacks or defends (Piece reach volume). Then, sum those distances (total reach volume) and normalize by dividing the total number of pieces to get the Mean Spatial Reach.
+
+Considerations: 
+1. We include all squares (aka include all empty squares too instead of just direct interactions between pieces) because for example a rook controls an open file, that is information we want to quantify.
+2. We exclude "ghost squares", aka the squares that can be reached if a piece isn't blocking movement as it would measure theoretical mobility rather than the actual spatial constraints the network must evaluate.
+
+$$MSR = \frac{1}{N} \sum_{p=1}^{N} \sum_{s \in attacks(p)} \text{Chebyshev}(p, s)$$
 
 
 
