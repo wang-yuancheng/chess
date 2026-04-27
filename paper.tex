@@ -171,7 +171,24 @@ Considerations:
 
 $$MSR = \frac{1}{N} \sum_{p=1}^{N} \sum_{s \in attacks(p)} \text{Chebyshev}(p, s)$$
 
+MSR measures the average spatial extent of all pieces on the board. A high MSR (eg. number) represents open position requiring long-range feature interactions, while a lower MSR represents a closed position where local feature extraction is sufficient.
+We exclude counting the square the piece is currently on.
 
+Problems:
+In an uncontrolled dataset, MSR is entangled with many other cofactors (board complexities). For instance, different stages of the game (opening, middlegame, endgame) have varying openness and material, which can easily affect our attempt to control this geometric factor of the board. From the plot of accuracies against piececount/phase we see that the models perform the worst in middlegames as there are a lot of pieces. Hence we focus on that.
+
+Eg. Open board can be endgame with little pieces like pawns that have little reach versus bishops and rooks that reach far.
+Eg. A board with lot of material can have low reach as pieces are locked, versus a board that is very open with sliding pieces like queens that have high reach.
+We want to see how CNNs and Transformers perform based on "how much each piece can move" as that is one way to see how complex a board is. And this distance inclusion is better than legal moves as it takes into account how far pieces can move.
+Hence, We need to decouple mean spatial reach from Openness/Material.
+
+We extract control covariates: 
+Total Material Count: Controls for the Phase of the Game (Opening vs. Endgame).
+Piece Count: This controls for Board Clutter / Openness.
+Sliding Piece Ratio:  This controls for Piece-Type Mobility. (Number of Q+R+B / Total Pieces) *Why not knights? Because Knights have a fixed maximum Chebyshev distance ($d=2$). They do not contribute to the variance in long-range spatial distances. Only sliding pieces dynamically alter the maximum spatial extent of the board.
+We do not just use Non Pawn Material as that just destroys our decoupling attempts.
+
+In this filtered dataset, the "Openness," the "Phase," and the "Piece Mobility" are all locked and held mathematically constant. The only variable that is allowed to change on the X-Axis is the Mean Spatial Reach (how those exact same pieces happen to be arranged geometrically).
 
 
 
