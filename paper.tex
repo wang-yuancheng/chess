@@ -190,6 +190,20 @@ We do not just use Non Pawn Material as that just destroys our decoupling attemp
 
 In this filtered dataset, the "Openness," the "Phase," and the "Piece Mobility" are all locked and held mathematically constant. The only variable that is allowed to change on the X-Axis is the Mean Spatial Reach (how those exact same pieces happen to be arranged geometrically).
 
+Experiments:
+Test 1: MSR vs. Accuracy (No controls). Reviewer thought: "This is just measuring if the board is open/endgame."
+Test 2 (Phase Control): MSR vs. Accuracy (Material Fixed).
+Test 3 (Clutter Control): MSR vs. Accuracy (Material + Piece Count Fixed). 
+Test 4 : MSR vs. Accuracy (Material + Piece Count + Sliding Ratio Fixed).
+
+However, to more accurately see how different CNNs and Transformer's performance on these tests, we look at the difference in accuracies of them.
+We also use quantile binning (15 bins) as MSR is a continuous variable for visualization.
+
+We plot the delta of accuracy against MSR and check the correlation. (we even see cnn perfoming better at test 4 when MSR drops very low. > In tightly locked, short-range positions, the CNN's 3x3 bias is actually highly effective and slightly beats the Transformer)
+
+Results: We see the plot from the usual U shape of accuracy against piece count on the same for acc against msr for test 1. But it slowly becomes a mountain shape instead. > When we apply strict matching, the true geometric difficulty is revealed.
+
+We also plot the the 95\% confidence interval of the regression (the grey shaded area) also slopes upward with the line > Even if we account for the maximum statistical noise in this dataset, the Transformer is still outperforming the CNN at long distances.
 
 
 
