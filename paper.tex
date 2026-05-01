@@ -206,6 +206,18 @@ Results: We see the plot from the usual U shape of accuracy against piece count 
 We also plot the the 95\% confidence interval of the regression (the grey shaded area) also slopes upward with the line > Even if we account for the maximum statistical noise in this dataset, the Transformer is still outperforming the CNN at long distances.
 
 
+Test 1 (0.501) -
+
+Test 2 (0.566) - Lock the material count, proving it's not just an endgame vs. opening issue. The correlation actually got stronger.
+
+Test 3 (0.313) - The correlation drops. By locking both material and piece count, we remove the "easy" sources of error. The models to evaluate the exact same density of pieces. The correlation is weakening, maybe the CNN isn't doing so bad after all?
+
+Test 4 (0.433) - (Sliding Ratio Fixed) The correlation bounced back up. This shows that the noise in Test 3 was caused by uncontrolled sliding pieces. When we isolated the 2D geometry, the CNN's penalty became undeniable again.
+
+If MSR is just a proxy for piece count and phase, correlation would drop to zero when we locked the piece count and phase in Test 4. But maybe, MSR is just a proxy for general complexity?
+Hence we compare correlation with a non-spatial measure of complexity in chess which the Branching Factor (number of legal moves on the board) (A position can have 45 legal moves but be completely locked in a tight corner (High Branching, Low MSR). Or it can have 45 legal moves spread across wide-open diagonals (High Branching, High MSR))
+
+The reality is, MSR and branching (Legal Moves) are very entangled. But our results mathematically prove that MSR is the a better and stronger signal.
 
 
 
