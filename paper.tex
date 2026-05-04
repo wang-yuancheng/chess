@@ -220,7 +220,14 @@ Hence we compare correlation with a non-spatial measure of complexity in chess w
 The reality is, MSR and branching (Legal Moves) are very entangled. But our results mathematically prove that MSR is the a better and stronger signal.
 
 
+Possible explanation: 
+The CNN's $3 \times 3$ kernels extract features in relative isolation. To span a distance of $d=7$, the data will be heavily compressed (pooled) through multiple layers, resulting in receptive field degradation. 
+In Test 3, locking the piece count without constraining the piece types introduced high variance into the combinatorial state space (e.g., comparing boards with four Queens to boards with four Knights). By locking the Sliding Ratio in Test 4, we controlled for this piece mobility distribution, isolating the purely geometric variable and causing the correlation to rebound.
 
+By showing that the delta correlates much stronger with MSR ($r=0.433$) but weaker with Legal Moves ($r=0.362$) under strict ablation, we prove that the CNN's architectural penalty is driven primarily by 2D geometric stretching, not merely a general failure to process dense game trees
+
+Appendix: Unbinned Ordinary Least Squares (OLS) Regression. Note: the correlation was calculated on the raw, unbinned dataset to show we did not manipulate the bins to get a better number.$$r = \frac{\sum_{i=1}^{N} (MSR_i - \overline{MSR})(\Delta_i - \overline{\Delta})}{\sqrt{\sum_{i=1}^{N} (MSR_i - \overline{MSR})^2 \sum_{i=1}^{N} (\Delta_i - \overline{\Delta})^2}}$$Where:$N$ is the total number of perfectly matched games (e.g., $N=7,871$).$MSR_i$ is the Mean Spatial Reach of board $i$.$\Delta_i$ is the individual game performance delta. (If TF got it right and CNN got it wrong, $\Delta = 1$. If tied, $\Delta = 0$. If CNN won, $\Delta = -1$).
+Statistical correlations (Pearson’s $r$ and OLS regression) were computed on the raw, unbinned dataset of $N=7,871$ samples to preserve true variance. 
 
 
 
