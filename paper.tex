@@ -32,7 +32,7 @@
 \definecolor{mlpcolor}{RGB}{44, 160, 44}    % Green
 
 % --- Title Data ---
-\title{\textbf{The Influence of Inductive Biases on Emergent Geometry under Tabula Rasa Constraints}}
+\title{\textbf{The Influence of Inductive Biases on Emergent Spatial Geometry of Knowledge Distilled Networks}}
 
 \author{
     \textbf{Wang Yuancheng} \\
@@ -44,7 +44,7 @@
 % --- Main Body ---
 \maketitle
 \begin{abstract}
-Deep neural networks have become increasingly intelligent in recent years, yet, how they reason and represent complex environments remains unclear. Although recent work has shown that models can implicitly track game states in such domains, little work has been done to compare different foundational architectures under a strict \textit{tabula rasa} constraint. This raises a question: How differently do these networks reason and form internal representations when presented with minimal information? We investigate this by benchmarking Multi-Layer Perceptrons (MLPs), Convolutional Neural Networks (CNNs) and Transformers on the task of evaluating chess positions without human knowledge. When provided with only a numerical encoding of the current board state and a ground truth evaluation, we show that these networks pick up different nuances that fuel their evaluation due to inherent inductive biases. With various interpretability techniques, we study the differences in their learned representations to help explain network predictions.
+Deep neural networks have demonstrated exceptional capability across various domains, yet, how they reason and represent complex environments remains unclear. Although recent work has shown that models can implicitly track game states in such domains, less work has been done to compare the emergent spatial representations of different foundational architectures. This raises a question: How differently do these networks reason and form internal representations when presented with minimal information? We investigate this by benchmarking Multi-Layer Perceptrons (MLPs), Convolutional Neural Networks (CNNs) and Transformers on the task of static chess position evaluation without human knowledge and game rules. To decouple spatial geometry from the combinatorial complexity of the board, we introduce Mean Spatial Reach (MSR), which we show to be a stronger diagnostic metric than simply using the number of legal moves. With various interpretability techniques, we study the differences in their learned representations to help explain network predictions.
 
 \end{abstract}
 
