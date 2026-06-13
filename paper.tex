@@ -10,6 +10,7 @@
 \usepackage{amssymb}
 \usepackage{hyperref}
 \usepackage{enumitem}
+\usepackage{bbm}
 
 \usepackage{siunitx} % For units
 \sisetup{per-mode=fraction}  % Forces fraction format
@@ -19,7 +20,7 @@
 % For two-column layout
 \usepackage{multicol} 
 \usepackage{float}
-
+\usepackage{caption}
 \usepackage{titling}
 \setlength{\droptitle}{-4em} % Negative value pulls the title up. Adjust if needed.
 
@@ -73,6 +74,7 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{pgfplots}
+\usepgfplotslibrary{fillbetween}
 \usepackage{svg}
 \usepackage{subcaption}
 \pgfplotsset{compat=1.18}
@@ -113,7 +115,7 @@
 \maketitle
 \thispagestyle{fancy} % Add this right here!
 
-\begin{multicols}{2}
+\begin{multicols*}{2}
 
 \begin{abstract}
 % abstract needs to be modified
@@ -154,11 +156,11 @@ Furthermore, it was shown that vision transformers and convolutional neural netw
 We now provide details on the methods for dataset curation, model training, model evaluation and result interpretability.
 
 \subsection{Data} 
-Our dataset consists of approximately 5.8M unique board states downloaded and extracted from CCRL website (\url{www.computerchess.org.uk/ccrl/}). Each state $s$ is run through Stockfish 17 at a depth of 20, which gives a centipawn score describing the position's evaluation $E(s)$. We frame position evaluation as a 7-class classification problem by binning the centipawn scores $E(s)$ into four magnitude tiers: Equal ($|E(s)| < 100$), Better ($100 \le |E(s)| < 300$), Decisive Advantage ($300 \le |E(s)| < 500$) and Winning ($|E(s)| \ge 500$). Furthermore, we apply Gaussian label smoothing on $E(s)$ to generate soft targets over the 7 classes (see Appendix \ref{label_smoothing}).
+Our dataset consists of approximately 5.8M unique board states downloaded and extracted from CCRL website (\url{www.computerchess.org.uk/ccrl/}). Each state $s$ is run through Stockfish 17 at a depth of 20, which gives a centipawn score describing the position's evaluation $E(s)$. We frame position evaluation as a 7-class classification problem by binning the centipawn scores $E(s)$ into four magnitude tiers: Equal ($|E(s)| < 100$), Better ($100 \le |E(s)| < 300$), Decisive Advantage ($300 \le |E(s)| < 500$) and Winning ($|E(s)| \ge 500$). Furthermore, we apply Gaussian label smoothing on $E(s)$ to generate soft targets over the 7 classes (see \hyperref[label_smoothing]{Appendix A.0.1}).
 
 To ensure these models generalize well, we apply three more steps during the curation of the dataset. Firstly, we follow the methodology of \textit{Giraffe} \cite{lai2015giraffe} by applying one random legal move to each position in our dataset which introduces imbalanced and unstructured positions. Next, to prevent the trivial result of networks simply guessing the "Equal" class, we construct a perfectly uniform class distribution for both training and testing by under-sampling the "Equal" class and selectively augmenting minority classes via horizontal board mirroring. Then, we filter out volatile positions ($<1\%$ of the dataset) where evaluations fluctuates by more than one class between Stockfish depths of 10 and 20.
 
-Unlike standard neural chess engines that normalize inputs to the perspective of White, we preserve the absolute, unrotated board state so as to not inject the concept of spatial symmetry into training. While we also utilize horizontal board mirroring to augment our dataset, that merely samples from other valid, reachable game states. Finally, the dataset is split by games to prevent data leakage, with a ratio of 80-10-10 for training, validation and testing respectively. 
+Unlike standard neural chess engines that normalize inputs to the perspective of White, we preserve the absolute, unrotated board state so as to not inject the concept of spatial symmetry into training. While we also utilize horizontal board mirroring to augment our dataset, that merely samples from other valid, reachable game states. Finally, the dataset is split by games to prevent data leakage, with a ratio of 80/10/10 for training, validation and testing respectively. 
 
 \subsection{Input Representation} 
 We adopt a widely used multi-channel tensor for CNNs \cite{silver2017alphazero} and modify it accordingly for MLPs and Transformers. Because our models function as static evaluation functions for an alternating Markov game \cite{tang2024maia}, we do not include past game states and provide only the current position.
@@ -172,11 +174,11 @@ For Transformers, we avoided the typical way of representing the board as a toke
 \subsection{Model Architectures}
 For clarity and consistency throughout this paper, we adopt this naming convention: [Architecture]-[Depth], where the numerical suffix indicates the total number of hidden layers or computational blocks (i.e., MLP-5, SE-ResNet-16, and Transformer-6).
 
-\textbf{Multi-Layer Perceptrons.}\enskip To establish a baseline, we implement a standard sequential MLP. We deliberately keep the architecture straightforward to observe how a network learns using just raw parameter capacity. As expected, the model overfitted very quickly in initial experiments. Hence, we apply Batch Normalization \cite{ioffe2015batch} and Dropout \cite{srivastava2014dropout} after each layer. We experimented with different depths and widths, but found that these modifications yielded diminishing returns (see Appendix \ref{mlp_details} for exact formulations and ablations).
+\textbf{Multi-Layer Perceptrons.}\enskip To establish a baseline, we implement a standard sequential MLP. We deliberately keep the architecture straightforward to observe how a network learns using just raw parameter capacity. As expected, the model overfitted very quickly in initial experiments. Hence, we apply Batch Normalization \cite{ioffe2015batch} and Dropout \cite{srivastava2014dropout} after each layer. We experimented with different depths and widths, but found that these modifications yielded diminishing returns (see \hyperref[mlp_details]{Appendix A.1.1} for exact formulations and ablations).
 
-\textbf{Convolutional Neural Networks.}\enskip We implement a deep residual neural network (ResNet) \cite{he2016deep} with Squeeze-and-Excitation (SE) blocks \cite{hu2018squeeze}, similar to older versions of the then state-of-the-art Leela Chess Zero engine. The raw input state $\mathbf{X}_{\text{stack}} \in \{0, 1\}^{19 \times 8 \times 8}$ is first projected to a higher-dimensional feature space via an initial convolution. It is then passed through a series of residual blocks, each containing two $3 \times 3$ convolutional layers followed by an SE block. Additionally, we apply Stochastic Depth \cite{huang2016deep} ($\text{DropPath}$) to the residual branches during training to regularize the network. We use global average pooling in both our SE blocks and the final classifier head, as this approach outperformed standard feature flattening in our initial experiments (see Appendix \ref{cnn_details} for exact formulations and ablations).
+\textbf{Convolutional Neural Networks.}\enskip We implement a deep residual neural network (ResNet) \cite{he2016deep} with Squeeze-and-Excitation (SE) blocks \cite{hu2018squeeze}, similar to older versions of the then state-of-the-art Leela Chess Zero engine. The raw input state $\mathbf{X}_{\text{stack}} \in \{0, 1\}^{19 \times 8 \times 8}$ is first projected to a higher-dimensional feature space via an initial convolution. It is then passed through a series of residual blocks, each containing two $3 \times 3$ convolutional layers followed by an SE block. Additionally, we apply Stochastic Depth \cite{huang2016deep} ($\text{DropPath}$) to the residual branches during training to regularize the network. We use global average pooling in both our SE blocks and the final classifier head, as this approach outperformed standard feature flattening in our initial experiments (see \hyperref[cnn_details]{Appendix A.1.2} for exact formulations and ablations).
 
-\textbf{Transformers.}\enskip We implement an Encoder-only Transformer without providing it any information on how each square relates to another. First, the tokens $\mathbf{t}_i \in \{0, 1\}^{19}$ are linearly projected into a higher-dimensional embedding space, followed by a ReLU activation and Layer Normalization. However, as chess is not permutation invariant but self-attention is, we initialize the network with randomized 1D positional embeddings to allow the independent discovery of square relationships. The sequence is then passed through a tower of Transformer encoder blocks. Here, we utilize DeepNorm \cite{wang2024deepnet} over PreNorm as we found it yielded better results while maintaining similar training stability. Finally, the sequence of 64 updated square tokens is aggregated via global average pooling to produce a new state representation, which is then passed to a standard linear classification head. (see Appendix \ref{transformer_details} for exact formulations and ablations).
+\textbf{Transformers.}\enskip We implement an Encoder-only Transformer without providing it any information on how each square relates to another. First, the tokens $\mathbf{t}_i \in \{0, 1\}^{19}$ are linearly projected into a higher-dimensional embedding space, followed by a ReLU activation and Layer Normalization. However, as chess is not permutation invariant but self-attention is, we initialize the network with randomized 1D positional embeddings to allow the independent discovery of square relationships. The sequence is then passed through a tower of Transformer encoder blocks. Here, we utilize DeepNorm \cite{wang2024deepnet} over PreNorm as we found it yielded better results while maintaining similar training stability. Finally, the sequence of 64 updated square tokens is aggregated via global average pooling to produce a new state representation, which is then passed to a standard linear classification head. (see Appendix \hyperref[transformer_details]{Appendix A.1.3} for exact formulations and ablations).
 
 \subsection{Evaluation and Analysis}
 We constrain the parameter capacity of all evaluated models to approximately 1.2M to ensure fair comparisons. We use standard top-1 accuracy and off-by-1 accuracy (predicting an adjacent class) to evaluate each model. To further understand the emergent representations within these networks, we apply the following methods:
@@ -186,14 +188,212 @@ We constrain the parameter capacity of all evaluated models to approximately 1.2
 where $\mathbf{W}_{kij}$ denotes the gradient element for piece channel $k$ at rank $i$ and file $j$.
 This ensures we do not discard meaningful information about any potential piece when determining the total input sensitivity of each square. 
 
-\textbf{Linear Probing.}\enskip Because the networks were trained as static evaluation functions without knowledge of the game rules, we probe their latent representations to determine if any linearly separable concepts regarding piece movements emerged. Initial experiments showed that a single linear probe lacked the non-linearity required to internalize how every single piece moved simultaneously. Hence, we train piece-specific linear probes (e.g. a Knight probe) to predict the legality of moves to all possible squares given a position. To prevent memorization, the training data is balanced such that 50\% of the samples evaluate the target piece, while the other 50\% evaluates non-target pieces (e.g. evaluates a Bishop for a Knight probe) or empty squares, in which all theoretical moves are labeled as illegal. The probes are attached to the deepest possible parts before heavy dimensionality reduction significantly degrades representations (see Appendix \ref{probe_locations} for exact attachment points).
+\textbf{Linear Probing.}\enskip Because the networks were trained as static evaluation functions without knowledge of the game rules, we probe their latent representations to determine if any linearly separable concepts regarding piece movements emerged. Initial experiments showed that a single linear probe lacked the non-linearity required to internalize how every single piece moved simultaneously. Hence, we train piece-specific linear probes (e.g. a Knight probe) to predict the legality of moves to all possible squares given a position. To prevent memorization, the training data is balanced such that 50\% of the samples evaluate the target piece, while the other 50\% evaluates non-target pieces (e.g. evaluates a Bishop for a Knight probe) or empty squares, in which all theoretical moves are labeled as illegal. The probes are attached to the deepest possible parts before heavy dimensionality reduction significantly degrades representations (see \hyperref[probe_locations]{Appendix B.1}  for exact attachment points).
 
 % Reminder: can add photos/ visualization of MSR, basically add more pictures so the paper is nice
 \textbf{Mean Spatial Reach.}\enskip Standard metrics like piece count and legal moves provide a great way to quantify the combinatorial complexity of a position. However, they fail to capture its geometric layout. The inductive biases of CNNs and Transformers can be better understood when we decouple this combinatorial complexity from spatial geometric complexities. Hence, we introduce Mean Spatial Reach (MSR), which quantifies the average spatial control (line of sight) pieces have over the board. For $N$ pieces, we compute the Chebyshev distance to every valid square $s$ a piece $p$ attacks or defends, including empty squares to account for the control of open space:
 \[MSR = \frac{1}{N} \sum_{p=1}^{N} \sum_{s \in attacks(p)} \text{Chebyshev}(p, s)\]
 
-As the game progresses and pieces are captured, the board density and branching factor of positions drops. This makes it difficult to isolate the true spatial variance of positions if we do not control for the environment we conduct tests. For instance, in dense middlegames, tight pawn structures often result in the lack of long-range interactions in a position, causing spatial variance to mathematically collapse. Hence, we construct a heavily stratified open-board environment (Material $\in [0, 32]$, Piece Count $\in [2, 16]$) from our test set. Within this subset, combinatorial complexity is held relatively constant, allowing the physical arrangement of pieces to fluctuate meaningfully. We further stratify this environment by fixing three control variables: Total Material Score, Total Piece Count, and Sliding Piece Ratio. Knights are excluded from the sliding ratio because their maximum spatial reach is fixed at $d=2$. These stratifications ensures any variance in model performance would be due to changes spatial geometry, allowing us to better evaluate the differences in spatial inductive biases of our models (see Appendix \ref{sec:msr_stratification} for full stratification methodology).
+As the game progresses and pieces are captured, the board density and branching factor of positions drops. This makes it difficult to isolate the true spatial variance of positions if we do not control for the environment we conduct tests. For instance, in dense middlegames, tight pawn structures often result in the lack of long-range interactions in a position, causing the collapse of spatial variance. Hence, we construct a heavily stratified open-board environment (Material $\in [0, 32]$, Piece Count $\in [2, 16]$) from our test set. Within this subset, combinatorial complexity is held relatively constant, allowing the physical arrangement of pieces to fluctuate meaningfully. We further stratify this environment by fixing three control variables: Total Material Score, Total Piece Count, and Sliding Piece Ratio, which we shall refer to as the Spatial Variance Benchmark. Additionally, we remove positions containing Knights from the benchmark. This is due to the Knight having a fixed spatial reach of $d=2$, suppressing the metric's dynamic range. Furthermore, it introduces combinatorial noise, such as generating up to 8 legal moves without contributing to scalable spatial geometry. These stratifications ensures any variance in model performance would be due to changes spatial geometry, allowing us to better evaluate the differences in spatial inductive biases of our models (see \hyperref[sec:msr_stratification]{Appendix C} for full stratification methodology). 
 
+% --- Section 4: Results  ---
+\section{Results}
+We select the following baseline models for the comparative analysis: \hyperref[mlp_details]{MLP-5}, \hyperref[cnn_details]{SE-ResNet-16}, and \hyperref[transformer_details]{Transformer-6}.
+\begin{table}[H] % Forces vertical placement
+    \centering
+    \caption{Performance comparison of baseline models.}
+    \label{tab:main_results}
+    % Forces horizontal width
+    \begin{tabular}{@{}lcc@{}}
+    \toprule
+    \textbf{Architecture} & \textbf{Top-1 Acc.} & \textbf{Off-by-1 Acc.} \\ \midrule
+    MLP-5 & 58.18\% & 88.05\%  \\
+    SE-ResNet-16 & 69.87\% & 94.72\% \\
+    Transformer-6 & \textbf{73.04\%} & \textbf{95.83\%} \\ \bottomrule
+    \end{tabular}%
+\end{table}
+
+Our results reveal the Transformer as the clear winner for static chess position evaluation under constraints as shown in Table \ref{tab:main_results}. Despite providing the CNN with SE Blocks that gives additional global context of the board, it was unable to outperform the attention mechanism of the Transformer. However, these performance metrics provide little insights into how differently they form internal representations. 
+
+\subsection{Isolating Spatial Inductive Biases}
+We examine the performance difference ($\Delta_{acc}$) between the Transformer and CNN with the Spatial Variance Benchmark established from Section 3.4. \autoref{fig:msr_scatter} shows the scatter plots of $\Delta_{acc}$ against both Mean Spatial Reach (MSR) and Legal Moves. In this controlled environment, we observe that the number of legal moves loses statistical significance ($r = 0.461$, $p = 0.084^{\text{ns}}$) when correlating with the difference in the models' performance. On the other hand, MSR remains statistically significant ($r = 0.620$, $p = 0.014^{*}$) in displaying a positive correlation.
+
+\begin{figure}[H]
+    \centering
+    
+    % --- TOP PLOT: MSR ---
+    \begin{tikzpicture}
+    \begin{axis}[
+        width=\linewidth,
+        height=5.5cm, % Reduced height for vertical stacking
+        title={},
+        title style={font=\small\bfseries, yshift=1ex},
+        xlabel={Mean Spatial Reach (MSR)},
+        ylabel={$\Delta_{Acc}$ (Transformer \% - CNN \%)},
+        xmin=5, xmax=25, % Adjust if needed based on your CSV
+        ymin=-0.5, ymax=6.5,
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        axis lines*=left,
+        thick,
+        label style={font=\small}, % Shrunk text for single-column
+        tick label style={font=\small}
+    ]
+    
+    \addplot[name path=upper, draw=none] table [x=x, y=y_upper, col sep=comma] {./data/msr_regression.csv};
+    \addplot[name path=lower, draw=none] table [x=x, y=y_lower, col sep=comma] {./data/msr_regression.csv};
+    \addplot[gray!30, opacity=0.6] fill between[of=upper and lower];
+    \addplot [thick, dashed, black] table [x=x, y=y_reg, col sep=comma] {./data/msr_regression.csv};
+    \addplot [only marks, mark=*, transcolor, mark size=1.5pt] table [x=x_val, y=delta, col sep=comma] {./data/msr_scatter.csv};
+    \draw[black, dashed, opacity=0.4, thick] (axis cs:\pgfkeysvalueof{/pgfplots/xmin},0) -- (axis cs:\pgfkeysvalueof{/pgfplots/xmax},0);
+    \node[draw=black, fill=white, anchor=south east, font=\small] 
+        at (axis cs: 24.5, 0.5) {$r=0.62$, $p=0.014^{*}$};
+        
+    \end{axis}
+    \end{tikzpicture}
+    
+    \vspace{0.4cm} % Space between the stacked plots
+    
+    % --- BOTTOM PLOT: LEGAL MOVES ---
+    \begin{tikzpicture}
+    \begin{axis}[
+        width=\linewidth,
+        height=5.5cm,
+        title={},
+        title style={font=\small\bfseries, yshift=1ex},
+        xlabel={Total Legal Moves},
+        ylabel={$\Delta_{Acc}$ (Transformer \% - CNN \%)}, % Added ylabel back
+        xmin=0, xmax=40, % Adjust if needed based on your CSV
+        ymin=-0.5, ymax=6.5,
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        axis lines*=left,
+        thick,
+        label style={font=\small},
+        tick label style={font=\small}
+    ]
+    
+    \addplot[name path=upper, draw=none] table [x=x, y=y_upper, col sep=comma] {./data/moves_regression.csv};
+    \addplot[name path=lower, draw=none] table [x=x, y=y_lower, col sep=comma] {./data/moves_regression.csv};
+    \addplot[gray!30, opacity=0.6] fill between[of=upper and lower];
+    \addplot [thick, dashed, black] table [x=x, y=y_reg, col sep=comma] {./data/moves_regression.csv};
+    \addplot [only marks, mark=*, cnncolor, mark size=1.5pt] table [x=x_val, y=delta, col sep=comma] {./data/moves_scatter.csv};
+    \draw[black, dashed, opacity=0.4, thick] (axis cs:\pgfkeysvalueof{/pgfplots/xmin},0) -- (axis cs:\pgfkeysvalueof{/pgfplots/xmax},0);
+    \node[draw=black, fill=white, anchor=south east, font=\small] 
+        at (axis cs: 39, 0.5) {$r=0.46$, $p=0.084^{\text{ns}}$};
+    \end{axis}
+    \end{tikzpicture}
+    
+    \caption{The performance advantage ($\Delta_{Acc}$) of the Transformer over the CNN plotted against Mean Spatial Reach (top) and Total Legal Moves (bottom) within the Spatial Variance Benchmark. The shaded regions indicate the 95\% confidence interval.}
+    \label{fig:msr_scatter}
+\end{figure}
+
+
+
+
+\subsection{Emergent Geometry}
+\begin{table}[H]
+\centering
+\caption{Linear Probe F1 Scores (\%) for legal move prediction. The \textbf{Raw Bitboard} serves as our control.}
+\label{tab:probe_f1_scores}
+% Adjust the value below. Smaller = less space between columns (Default is usually 6pt)
+\setlength{\tabcolsep}{5.8pt} 
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Representation} & \textbf{Knight} & \textbf{Bishop} & \textbf{Rook} & \textbf{Queen} \\ \midrule
+Raw Bitboard & \textbf{83.63} & 70.22 & 66.40 & 64.67 \\ \midrule
+MLP & 52.57 & 43.75 & 50.46 & 50.86 \\
+CNN & 60.26 & 52.19 & 54.48 & 51.93 \\
+Transformer & 81.73 & \textbf{71.71} & \textbf{67.75} & \textbf{65.72} \\ \bottomrule
+\end{tabular}
+\end{table}
+
+Linear Probes: The data states that the latent representations inside the MLP and CNN contain less linearly separable information regarding legal moves than the raw input. The Transformer's latent representation contains roughly the same amount of linearly separable information as the raw input.
+
+\begin{figure}[H]
+    \centering
+    \framebox[5cm]{\rule{0pt}{5cm} Image Placeholder}
+    \caption{Linear Probe on Poster Position: Show the actual F1 score table and the visual map of what the probe detected here.}
+    \label{fig:square_placeholder}
+\end{figure}
+
+
+\subsection{Visual Interpretability \& Failure Analysis}
+[Attention Maps, Saliency Maps, Gradient Analysis]
+
+% If required: Note: While the 4-head model is used for strict parameter-matched performance metrics, visualizations are derived from an 8-head variant. The expanded attention subspace reduces polysemanticity, allowing the network to cleanly disentangle distinct spatial geometries (e.g., orthogonal lines vs. knight jumps). OR Notably, for the qualitative visualization of attention mechanisms, we utilize an 8-head variant of our Transformer baseline to better disentangle distinct spatial motifs.
+
+
+\begin{figure}[H]
+    \centering
+    \framebox[5cm]{\rule{0pt}{5cm} Image Placeholder}
+    \caption{grad-cam}
+    \label{fig:square_placeholder}
+\end{figure}
+
+
+The hard negatives. Show the 2x Saliency/Grad-CAM failures alongside the diverging colormaps (Difference Maps) and the individual square gradient plots.
+
+Moreover, 33.8\% of the dataset contained an odd number of pieces on board, accurately representing high ELO games where transient states do not last long, as material exchanges bring down an even number of pieces more often than not. We hypothesize that these transient states could be one reason the mlp fails due to not putting enough emphasis on the turn bit or not recognizing that the pieces can take each other.
+
+\textbf{Failure analysis}\enskip We focus on 3 main situations. Mention that with more data these information might be solved better?
+1. Transformer is Correct (+ MLP doesn't matter) and CNN is Wrong ($\ge 3$ classes).
+Guess: CNN is bad a long range piece dynamics.
+2. CNN is Correct (+ MLP doesn't matter) and Transformer is Wrong ($\ge 3$ classes).
+Guess: Transformer looks at everything at once. Sometimes, the Transformer's self-attention gets distracted by a piece and misses the overall picture (such as no. of pieces)
+3. Transformer and CNN are Correct, but MLP is Catastrophically Wrong.
+Guess: 2D information is important but MLP flattens to 1D
+% Operating under a strict data budget acts as a stress test for representation capacity, forcing the architectures to rely heavily on their intrinsic structural biases.
+
+
+\begin{figure}[H]
+    \centering
+    \framebox[5cm]{\rule{0pt}{5cm} Image Placeholder}
+    \caption{2 Examples: CNN hard negative, Transformer hard positive, Saliency difference map}
+    \label{fig:square_placeholder}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \framebox[5cm]{\rule{0pt}{5cm} Image Placeholder}
+    \caption{2 Examples: Transformer hard negative, CNN hard positive, saliency difference map}
+    \label{fig:square_placeholder}
+\end{figure}
+
+
+
+
+% --- Section 5: Discussion  ---
+\section{Discussion}
+[Inductive Bias Trade-offs, proved that spatial geometry learnable.]
+3 fold repetition blind, did not include a 3 fold repetition bit in input representation because...
+
+\begin{figure}[H]
+    \centering
+    \framebox[5cm]{\rule{0pt}{5cm} Image Placeholder}
+    \caption{saliency map of poster all 3 and talk about the irony}
+    \label{fig:square_placeholder}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \framebox[5cm]{\rule{0pt}{5cm} Image Placeholder}
+    \caption{Gradient of individual squares plot, show like mlp often make queen high gradient cuz it just count piece and cnn/ transformer more balanced?}
+    \label{fig:square_placeholder}
+\end{figure}
+
+
+\section{Future Work}
+Proving Causality (Interventions): Altered the AI's internal memory mid-computation, which instantly changed its next-move predictions to match the fake layout. This proves the internal map actively dictates the model's decisions.
+Latent Saliency Maps: By tweaking these internal tile states and observing the resulting prediction changes, researchers visually mapped exactly which board pieces the AI focuses on to choose its strategy.
+
+
+% --- Section 6: Conclusion  ---
+\section{Conclusion}
+Transformers have linear representation of how piece moves but cnn/mlp have non-linear/dont have representation
+Through msr, we know that CNN perform good at low msr and transformer perform good at high msr, transformer is still most superior, in most complex and tatical positions but funnily enough it can sometimes overlook the most simple methods of detemining a position such as piece counting.
+
+\textbf{Limitations}\enskip
 
 % --- Section 7: Acknowledgments  ---
 \section*{Acknowledgments}
@@ -342,13 +542,74 @@ To evaluate the latent representations before heavy dimensionality reduction deg
 \section{Mean Spatial Reach Methodology}
 \label{sec:msr_stratification}
 
+
+Piece count can act as a proxy for combinatorial complexity, and we observe a general performance degradation for positions in the middlegame (see Figure \ref{fig:combined_acc}). In the early game, even though the board contains the most pieces, locked pawn structures and undeveloped pieces mean the combinatorial complexity is not actually as high compared to the middlegame. In the late game, as pieces are captured, the combinatorial complexity drops once again. 
+\begin{figure}[H] 
+\centering
+
+\begin{subfigure}{0.4\textwidth}
+    \centering
+    \begin{tikzpicture}[]
+    \begin{axis}[
+        width=\linewidth, % Fills the subfigure width
+        height=5cm,
+        xlabel={Piece Count},
+        ylabel={Accuracy},
+        xmin=2, xmax=32,
+        ymin=0.4, ymax=1.0, 
+        xtick={2, 10, 20, 32}, % Fewer ticks so it doesn't look crowded
+        ymajorgrids=true,
+        grid style={dashed, gray!30},
+        axis lines*=left,
+        thick,
+        % Extracts the legend to print later
+        legend columns=-1, 
+        legend style={draw=none, fill=none, font=\small},
+        legend to name=shared_legend 
+    ]
+    
+    \addplot[color=transcolor, mark=*, mark size=1pt] 
+        table[x=piece_count, y=accuracy, col sep=comma] {./data/transformer/accuracy_vs_piece_count.csv};
+    \addlegendentry{Transformer}
+    
+    \addplot[color=cnncolor, dashed, mark=square*, mark size=1pt] 
+        table[x=piece_count, y=accuracy, col sep=comma] {./data/cnn/accuracy_vs_piece_count.csv};
+    \addlegendentry{CNN}
+    
+    \addplot[color=mlpcolor, dotted, mark=triangle*, mark size=1.5pt] 
+        table[x=piece_count, y=accuracy, col sep=comma] {./data/mlp/accuracy_vs_piece_count.csv};
+    \addlegendentry{MLP}
+    
+    \end{axis}
+    \end{tikzpicture}
+    % \caption{Accuracy vs. Piece Count}
+    \label{fig:sub_piece}
+\end{subfigure}\hfill
+
+% --- PRINT THE SHARED LEGEND HERE ---
+\begin{center}
+\ref*{shared_legend}
+\end{center}
+
+\caption{Model accuracy evaluated across different stages of the game, measured by total piece count.}
+\label{fig:combined_acc}
+\end{figure}
+
+However, our goal is to decouple the combinatorial search space with spatial layout of the pieces. Hence, we introduce MSR.
+
 \subsection{Usage of MSR}
-We measure the correlation between MSR and the performance delta($\Delta_{acc}$) between the Transformer and the CNN by first defining $\Delta_{acc} \in \{-1, 0, 1\}$ as whether the Transformer underperformed, tied, or outperformed the CNN on a given board state. Since the singular evaluations yield a discrete value ($\{-1, 0, 1\}$), we divide the data into equal sized quantile bins $B=15$. 
-For each bin $b$, we take the mean of the complexity metric $X_b$ and the mean of performance delta $Y_b$, then calculate the correlation using the Ordinary Least Squares (OLS) regression formula:
+We measure the correlation between MSR and the performance advantage ($\Delta_{acc}$) between the Transformer (TF) and the CNN by first dividing the dataset into $B = 15$ equal-sized quantile bins. For each bin $b$, we calculate the average accuracy of both models:
+
+\[Acc_{TF}^{(b)} = \frac{1}{|b|} \sum_{i \in b} \mathbbm{1}(\text{TF}_i = \text{True})\]
+
+\[Acc_{CNN}^{(b)} = \frac{1}{|b|} \sum_{i \in b} \mathbbm{1}(\text{CNN}_i = \text{True})\]
+
+Then, we take the percentage difference to get $\Delta_{acc}$ for each bin: 
+\[\Delta_{Acc}^{(b)} = \left( Acc_{TF}^{(b)} - Acc_{CNN}^{(b)} \right) \times 100\]
+
+We then calculate the correlation using the Ordinary Least Squares (OLS) regression formula:
 \[r = \frac{\sum_{b=1}^{B} (X_b - \overline{X})(Y_b - \overline{Y})}{\sqrt{\sum_{b=1}^{B} (X_b - \overline{X})^2 \sum_{b=1}^{B} (Y_b - \overline{Y})^2}}\]
 where $\overline{X}$ and $\overline{Y}$ are the means of the binned variables. 
-Then, we use the binned Pearson correlation coefficient ($r$) to check statistical significances.  
-We also do the above for to check the correlation between legal moves and $\Delta_{acc}$ and statistical significance for comparisons. 
 
 \subsection{Data Stratification}
 Our goal is to isolate spatial variance in positions. Here, we present the filtering pipeline on our open-board subset of positions to curate the ideal test environment where MSR shines. We start with the original uncontrolled subset of open-board positions. 
@@ -356,12 +617,12 @@ Our goal is to isolate spatial variance in positions. Here, we present the filte
     \item \textbf{Test 1:} The original uncontrolled subset of open-board positions. 
     \item \textbf{Test 2:} Restrict the Total Material Score on the board to $\in [0, 32]$.
     \item \textbf{Test 3:} Restrict the Total Piece Count to $\in [2, 16]$.
-    \item \textbf{Test 4:} Restrict the Sliding Piece Ratio, which is the fraction of long-range pieces (Queen, Bishop, Rook) over total pieces to $\in [0.15, 0.50]$. This last test subset creates an environment where there are a few long-range pieces on the board, but not too much where it introduces combinatorial complexities again. With this constraint, the spatial geometric variance still varies meaningfully.
+    \item \textbf{Test 4:} Restrict the Sliding Piece Ratio, which is the fraction of long-range pieces (Queen, Bishop, Rook) over total pieces to $\in [0.15, 0.50]$. This is our Spatial Variance Benchmark. With the last restriction, it ensures variance in MSR would be mainly due to placements of the pieces rather than a trivial bias in piece types (e.g., a board containing more Queens than another).
 \end{enumerate}
 
 \begin{table}[H]
 \centering
-\caption{The binned Pearson correlation ($r$) and significance ($p$) of MSR and Legal Moves against the Transformer-CNN accuracy delta ($\Delta_{acc}$) across all stages of the stratification pipeline. Test 4* refers to the KnightSlide test where Knights are included in the calculation of Sliding Piece Ratio. N refers to the number of positions. Values with $p < 0.05$ are bolded.}
+\caption{The binned Pearson correlation ($r$) and significance ($p$) of MSR and Legal Moves against the Transformer-CNN performance advantage ($\Delta_{acc}$) across all stages of the stratification pipeline. Test 4 refers to the Spatial Variance Benchmark. Test 4* refers to the KnightSlide test where Knights are included in the calculation of Sliding Piece Ratio. N refers to the number of positions. Values with $p < 0.05$ are bolded.}
 \label{tab:open_board_ablation}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
@@ -377,27 +638,31 @@ Test 4* & 61,596 & 0.197 & 0.481 & 0.261 & 0.347 \\ \bottomrule
 \end{table}
 
 \section{Training Curves}
+\label{sec:training_curves}
+We see the effect of inductive biases versus the underlying mechanism even more clearly by observing the difference in training curves. The CNN had higher initial validation accuracy due to its spatial inductive biases of the $3 \times 3$ convolution, as shown in \autoref{fig:accuracy_curves}, but it was soon overtaken by the Transformer that was able to better generalize over epochs, as shown in \autoref{fig:train_val_loss_curves}.
+
 \begin{figure}[H]
 \centering
-% ACCURACY PLOTS 
 % --- Train Accuracy ---
-\begin{subfigure}{0.48\textwidth}
+\begin{subfigure}{0.49\linewidth}
     \centering
-    \begin{tikzpicture}[trim axis left, trim axis right]
+    \begin{tikzpicture}[]
     \begin{axis}[
-        width=4.5cm,
-        height=4.5cm,
+        width=\linewidth, % Automatically scales to the subfigure width
+        height=4.2cm,
         xlabel={Epoch},
         ylabel={Train Accuracy},
         xmin=0, xmax=10,
         ymax=0.7,
         xtick={0, 5, 10},
+        label style={font=\small}, % Shrinks labels to fit
+        tick label style={font=\small}, % Shrinks numbers to fit
         ymajorgrids=true,
         grid style={dashed, gray!30},
         axis lines*=left,
         thick,
         legend columns=-1, 
-        legend style={draw=none, fill=none, font=\small},
+        legend style={draw=none, fill=none, font=\small}, % Smaller legend
         legend to name=shared_legend_learning_curves 
     ]
     
@@ -414,19 +679,22 @@ Test 4* & 61,596 & 0.197 & 0.481 & 0.261 & 0.347 \\ \bottomrule
     \end{axis}
     \end{tikzpicture}
     \label{fig:sub_train_acc}
-\end{subfigure}\hfill
+\end{subfigure}% <-- Note: the % sign here prevents an invisible space that causes wrapping
+\hfill
 % --- Validation Accuracy ---
-\begin{subfigure}{0.48\textwidth}
+\begin{subfigure}{0.49\linewidth}
     \centering
-    \begin{tikzpicture}[trim axis left, trim axis right]
+    \begin{tikzpicture}[]
     \begin{axis}[
-        width=4.5cm,
-        height=4.5cm,
+        width=\linewidth, % Automatically scales to the subfigure width
+        height=4.2cm,
         xlabel={Epoch},
         ylabel={Val Accuracy},
         xmin=0, xmax=10,      
         ymax=0.7,
         xtick={0, 5, 10},
+        label style={font=\small},
+        tick label style={font=\small},
         ymajorgrids=true,
         grid style={dashed, gray!30},
         axis lines*=left,
@@ -446,30 +714,31 @@ Test 4* & 61,596 & 0.197 & 0.481 & 0.261 & 0.347 \\ \bottomrule
 \end{subfigure}
 
 % --- SHARED LEGEND ---
-\vspace{-0.2cm}
 \begin{center}
 \ref*{shared_legend_learning_curves}
 \end{center}
-\caption{Training accuracy (left) and validation accuracy (right) for the first 10 epochs. We see that CNNs have the highest initial training and validation accuracy. Accuracies for transformers slowly catch up and overtake CNNs while that of MLPs fall far behind.}
+\caption{Accuracies for the first 10 epochs.}
 \label{fig:accuracy_curves}
 \end{figure}
 
 % LOSS PLOTS 
 \begin{figure}[H]
 \centering
-% --- MLP Loss ---
-\begin{subfigure}{0.32\textwidth}
+% --- CNN Loss ---
+\begin{subfigure}{0.49\linewidth}
     \centering
-    \begin{tikzpicture}[trim axis left, trim axis right]
+    \begin{tikzpicture}[]
     \begin{axis}[
         width=\linewidth,
-        height=4.5cm,
-        title={MLP},
+        height=4.2cm,
+        title={CNN},
         xlabel={Epoch},
         ylabel={Loss},
         xmin=0, xmax=100,
         ymin=0.90, ymax=1.48,
         xtick={0, 50, 100},
+        label style={font=\small},
+        tick label style={font=\small},
         ymajorgrids=true,
         grid style={dashed, gray!30},
         axis lines*=left,
@@ -480,55 +749,32 @@ Test 4* & 61,596 & 0.197 & 0.481 & 0.261 & 0.347 \\ \bottomrule
     ]
     
     \addplot[color=blue, mark=none, thick] 
-        table[x=epoch, y=train_loss, col sep=comma] {./data/mlp/mlp_learning_curves.csv};
+        table[x=epoch, y=train_loss, col sep=comma] {./data/cnn/cnn_learning_curves.csv};
     \addlegendentry{Train Loss}
     \addplot[color=red, dashed, mark=none, thick] 
-        table[x=epoch, y=val_loss, col sep=comma] {./data/mlp/mlp_learning_curves.csv};
-    \addlegendentry{Validation Loss}
-    
-    \end{axis}
-    \end{tikzpicture}
-    \label{fig:sub_mlp_loss}
-\end{subfigure}\hfill
-% --- CNN Loss ---
-\begin{subfigure}{0.32\textwidth}
-    \centering
-    \begin{tikzpicture}[trim axis left, trim axis right]
-    \begin{axis}[
-        width=\linewidth,
-        height=4.5cm,
-        title={CNN},
-        xlabel={Epoch},
-        xmin=0, xmax=100,
-        ymin=0.90, ymax=1.48,
-        xtick={0, 50, 100},
-        ymajorgrids=true,
-        grid style={dashed, gray!30},
-        axis lines*=left,
-        thick,
-    ]
-    
-    \addplot[color=blue, mark=none, thick] 
-        table[x=epoch, y=train_loss, col sep=comma] {./data/cnn/cnn_learning_curves.csv};
-    \addplot[color=red, dashed, mark=none, thick] 
         table[x=epoch, y=val_loss, col sep=comma] {./data/cnn/cnn_learning_curves.csv};
+    \addlegendentry{Validation Loss}
         
     \end{axis}
     \end{tikzpicture}
     \label{fig:sub_cnn_loss}
-\end{subfigure}\hfill
+\end{subfigure}% <-- Prevents invisible space wrapping
+\hfill
 % --- Transformer Loss ---
-\begin{subfigure}{0.32\textwidth}
+\begin{subfigure}{0.49\linewidth}
     \centering
-    \begin{tikzpicture}[trim axis left, trim axis right]
+    \begin{tikzpicture}[]
     \begin{axis}[
         width=\linewidth,
-        height=4.5cm,
+        height=4.2cm,
         title={Transformer},
         xlabel={Epoch},
+        ylabel={Loss},
         xmin=0, xmax=100,
         ymin=0.90, ymax=1.48,
         xtick={0, 50, 100},
+        label style={font=\small},
+        tick label style={font=\small},
         ymajorgrids=true,
         grid style={dashed, gray!30},
         axis lines*=left,
@@ -546,14 +792,22 @@ Test 4* & 61,596 & 0.197 & 0.481 & 0.261 & 0.347 \\ \bottomrule
 \end{subfigure}
 
 % --- SHARED LEGEND ---
-\vspace{-0.2cm}
 \begin{center}
 \ref*{shared_legend_loss_curves}
 \end{center}
 
-\caption{Per-architecture learning curves over 100 epochs. By epoch 75, convergence generally stabilized and the train and validation accuracy gaps here are 3.37\% for the MLP (left), 5.86\% for the CNN (middle), and 2.90\% for the Transformer (right).}
+\caption{Learning curves over 100 epochs.}
 \label{fig:train_val_loss_curves}
 \end{figure}
 
-\end{multicols}
+\section{Transformer Attention Weights}
+\begin{figure}[H]
+    \centering
+    \framebox[5cm]{\rule{0pt}{5cm} Image Placeholder}
+    \caption{Transformer attention weights}
+    \label{fig:square_placeholder}
+\end{figure}
+
+
+\end{multicols*}
 \end{document}
