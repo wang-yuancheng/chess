@@ -317,11 +317,11 @@ While the Transformer always perform better than the CNN regardless of the numbe
 We further verify that this correlation isolates scalable spatial geometry by selecting positions that must contain Knights (see \autoref{tab:open_board_ablation}, Test 4*). Introducing these pieces immediately caused the correlation with the Transformer's advantage to collapse into random noise ($r = 0.234$, $p =  0.515^{\text{ns}}$). Because Knights have a fixed short-range spatial reach ($d=2$), the data proves that the Transformer's advantage is not because it can handle positions with high combinatorial complexities. Instead, the advantage itself, is due to the ability to better resolve long-range interactions.
 
 \subsection{Emergent Representations}
-With linear probes, we can examine the internal representations of our networks.
+With linear probes, we can examine the internal representations of our networks. We call the linear probes with 50\% target piece presence Constrained Linear Probes and the other with 100\% target piece presence Unconstrained Linear Probe.
 
 \begin{table}[H]
 \centering
-\caption{Linear Probe F1 Scores (\%) for legal move prediction (50\% target piece presence). The \textbf{Flat Bitboard} serves as our control.}
+\caption{Constrained Linear Probe F1 Scores (\%) for legal move prediction (50\% target piece presence).}
 \label{tab:probe_f1_scores}
 % Adjust the value below. Smaller = less space between columns (Default is usually 6pt)
 \setlength{\tabcolsep}{5.8pt} 
@@ -336,13 +336,11 @@ Transformer & 81.73 & \textbf{71.71} & \textbf{67.75} & \textbf{65.72} \\ \botto
 \vspace{-1em}
 \end{table}
 
-\autoref{tab:probe_f1_scores} shows that the latent representations within the MLP and CNN contain much less linearly separable information regarding legal moves than the raw input. Surprisingly, the Transformer's latent representation preserves, and in some cases, contain more linearly separable information. 
-
-This different is even more pronounced when we look at the F1-scores of the probes trained with the dataset that only contain the target piece. Without the need to identify if the target piece is on the selected square, the probes perform even better........
+\autoref{tab:probe_f1_scores} shows that the latent representations within the MLP and CNN contain much less linearly separable information regarding legal moves than the raw input. Surprisingly, the Transformer's latent representation preserves, and in some cases, contain more linearly separable information. This difference is even more pronounced when we look at the F1-scores of the probes trained with the dataset that only contain 100\% the target piece.
 
 \begin{table}[H]
 \centering
-\caption{Unconstrained Linear Probe F1 Scores (\%) for legal move prediction (100\% target piece presence). The \textbf{Flat Bitboard} serves as our control.}
+\caption{Unconstrained Linear Probe F1 Scores (\%) for legal move prediction (100\% target piece presence).}
 \label{tab:unconstrained_probe_f1_scores}
 \setlength{\tabcolsep}{5.8pt} 
 \begin{tabular}{@{}lcccc@{}}
@@ -356,45 +354,46 @@ Transformer & \textbf{96.83} & \textbf{91.19} & \textbf{87.89} & \textbf{86.84} 
 \vspace{-1em}
 \end{table}
 
-% As shown in Figure [X], when we extract these pure geometric mappings, the Transformer yields highly accurate, noise-free trajectories ($\ge 95\%$ F1 for Knights). More importantly, this diagnostic approach reveals a profound difference in architectural biases: the Transformer naturally learns dynamic occlusion. When mapping the spatial reach of sliding pieces (e.g., Rooks or Bishops), the Transformer explicitly truncates the trajectory upon encountering blocking pieces. In contrast, even under this isolated probing regime, the MLP and CNN fail to consistently model occlusion, frequently projecting theoretical movement rays directly through blocking pieces. This proves that the Transformer's self-attention mechanism does not merely project static spatial filters, but actively computes conditional lines-of-sight across the board.
+When we remove the need to identify if the target piece is on the selected square, the probe for the Transformer performs exceptionally well while that of the other architectures continue to lag far behind, as shown in \autoref{tab:unconstrained_probe_f1_scores}. Furthermore, it now outperforms the the Flat Bitboard on all 4 piece probes. While the raw bitboards provide lossless information, deriving valid piece trajectories directly require non-linear conditional logic that the linear probe cannot execute. The results show that the Transformer have not just preserved, but enhanced the features of the initial input representation with its self-attention layers.
+
+By plotting each probe's output probability of whether a move is legal or not (legal if $\geq$ 50\% probability) for all squares, we can visually see the differences. 
 
 \begin{figure}[H]
     \centering
-    \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
-    \caption{CNN vs Transformer on knights 2 boards}
-    \label{fig:square_placeholder}
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/cnn_bishop} 
+        \caption{\textbf{CNN}}
+        \label{fig:linear_probe_comparison_bishop_cnn}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/transformer_bishop}
+        \caption{\textbf{Transformer}}
+        \label{fig:linear_probe_comparison_bishop_transformer}
+    \end{subfigure}
+    
+    \caption{Unconstrained Bishop probe probability maps for the CNN and Transformer.}
+    \label{fig:linear_probe_comparison_bishop}
+    \vspace{-1.5em}
 \end{figure}
 
-[analysis]
+\autoref{fig:linear_probe_comparison_bishop} reveal three differences that highlight the architectural inductive biases which affect spatial representations:
 
-\begin{figure}[H]
-    \centering
-    \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
-    \caption{CNN vs Transformer on rooks 2 boards}
-    \label{fig:square_placeholder}
-\end{figure}
+\textbf{Target Square Resolution.}\enskip The rule of not being able to capture friendly pieces is a fundamental rule in Chess. However, the representations formed by the CNN (and the MLP) is not linearly decodable, resulting in the high probabilities assigned to squares occupied by pieces of the same color as seen in \autoref{fig:linear_probe_comparison_bishop_cnn}. In contrast, the Transformer's latent space preserves this concept linearly, allowing the probe to suppress activations easily on friendly pieces as shown in \autoref{fig:linear_probe_comparison_bishop_transformer}.
 
-[analysis]
+\textbf{Piece occlusion.}\enskip The representations must contain linearly decodable information regarding piece occlusion (pieces blocking the line of sight of the target piece) for the probe to accurately determine long-range piece mobility. This conditional logic is is not linearly accessible in the CNN's (and MLP's) latent representations, causing the probe to project "movement rays" directly through pieces seen in \autoref{fig:linear_probe_comparison_bishop_cnn}. Although the Transformer Probe depict arguably perfect results in \autoref{fig:linear_probe_comparison_bishop_transformer}, it often leaves residual probability on the immediate square behind the occluder before completely dropping to zero (see \hyperref[sec:appendix_linear_probes]{Appendix E}). 
 
-
-
-
+\textbf{Spatial Fading.}\enskip In the CNN's latent space, the linearly accessible information regarding legal moves steadily decays as the Chebyshev distance from the target piece increases. We hypothesize that this is the result of feature  degradation caused by routing these long-range piece dynamics through multiple layers and overlapping receptive fields of the inherent $3 \times 3$ convolutional kernels. In contrast, the Transformer probe is able to output uniform and high probabilities for squares even after increasing distance. By establishing an $O(1)$ spatial routing path between any two squares within a single attention layer, the Transformer is able bypass the problem of feature degradation seen in the CNN.
 
 \subsection{Visual Interpretability \& Failure Analysis}
-[Attention Maps, Saliency Maps, Gradient Analysis]
+[Saliency Maps, Gradient Analysis
+% no grad-cam or transformer attention weights
 
 % If required: Note: While the 4-head model is used for strict parameter-matched performance metrics, visualizations are derived from an 8-head variant. The expanded attention subspace reduces polysemanticity, allowing the network to cleanly disentangle distinct spatial geometries (e.g., orthogonal lines vs. knight jumps). OR Notably, for the qualitative visualization of attention mechanisms, we utilize an 8-head variant of our Transformer baseline to better disentangle distinct spatial motifs.
 
-
-\begin{figure}[H]
-    \centering
-    \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
-    \caption{grad-cam}
-    \label{fig:square_placeholder}
-\end{figure}
-
-
-The hard negatives. Show the 2x Saliency/Grad-CAM failures alongside the diverging colormaps (Difference Maps) and the individual square gradient plots.
+The hard negatives. Show the 2x Saliency failures alongside the diverging colormaps (Difference Maps) and the individual square gradient plots.
 
 \textbf{Failure analysis}\enskip We focus on 3 main situations. Mention that with more data these information might be solved better?
 1. Transformer is Correct (+ MLP doesn't matter) and CNN is Wrong ($\ge 3$ classes).
@@ -404,6 +403,7 @@ Guess: Transformer looks at everything at once. Sometimes, the Transformer's sel
 3. Transformer and CNN are Correct, but MLP is Catastrophically Wrong.
 Guess: 2D information is important but MLP flattens to 1D
 % Operating under a strict data budget acts as a stress test for representation capacity, forcing the architectures to rely heavily on their intrinsic structural biases.
+% This is the place to show that the transformer is not all powerful and, under some constraints etc, may overlook "obvious" things.
 
 
 \begin{figure}[H]
@@ -429,11 +429,12 @@ Guess: 2D information is important but MLP flattens to 1D
 % This contrast highlights a fundamental difference in how these architectures route spatial information during a static forward pass. Because our models evaluate positions without any lookahead search, they must resolve board dynamics entirely within their latent representations. The CNN relies on localized $3 \times 3$ kernels. To evaluate a long-range interaction—such as a Bishop pinning a Rook across the board—the network must propagate activations through multiple residual layers. This layer-by-layer diffusion inherently dilutes precise geometric relationships, a bottleneck that even Squeeze-and-Excitation global pooling struggles to overcome. Conversely, the Transformer's self-attention mechanism provides an $O(1)$ computational path length between any two squares on the board. This allows it to naturally construct and evaluate the emergent, long-range spatial line-of-sights mathematically captured by MSR.
 % This confirms that the localized $3 \times 3$ kernels of the CNN, despite Squeeze-and-Excitation global pooling, are fundamentally bottlenecked in capturing long-range spatial dependencies. Conversely, these emergent geometric relationships are naturally modeled by the Transformer's self-attention mechanism.
 
+% if it is stored non linearly, then whats the point? the transformer store it linearly and the cnn store it non lienarly whats the big deaTransformer inductive bias or mechanism somehow engrained piece occlusion information in its latent representations. On the other hand, the cnn convolutions etc etc did not, or had less.
+% Readability for the Final Head: Your models (MLP, CNN, Transformer) all end with a linear classification head (or global average pooling into a linear head). If a crucial feature like "friendly piece occlusion" is locked behind a highly non-linear, entangled representation, the final linear classification head cannot easily use it. The Transformer pre-processes the data so cleanly that the final layer just has to read it. The CNN leaves a tangled mess that the final layer struggles to parse. Feature Abstraction: When a concept is linearly decodable, it means the network has discovered that concept as a fundamental, independent "direction" in its latent space. It has truly abstracted the rule. When it is non-linear, it usually means the network is relying on localized memorization or messy heuristics rather than a clean abstraction. Generalization: Linearly separated representations are notoriously more robust. If the Transformer linearly isolates the "cannot capture friendly piece" rule, it will apply that rule flawlessly to unseen positions. If the CNN has it entangled, it might fail in edge-case board states because it never explicitly isolated the rule.
 
 [Inductive Bias Trade-offs, proved that spatial geometry learnable.]
-3 fold repetition blind, did not include a 3 fold repetition bit in input representation because...
+turn bit, 3 fold repetition blind, did not include a 3 fold repetition bit in input representation because...
 
-Moreover, 33.8\% of the dataset contained an odd number of pieces on board, accurately representing high ELO games where transient states do not last long, as material exchanges bring down an even number of pieces more often than not. We hypothesize that these transient states could be one reason the mlp fails due to not putting enough emphasis on the turn bit or not recognizing that the pieces can take each other.
 
 \begin{figure}[H]
     \centering
@@ -442,12 +443,12 @@ Moreover, 33.8\% of the dataset contained an odd number of pieces on board, accu
     \label{fig:square_placeholder}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
-    \caption{Gradient of individual squares plot, show like mlp often make queen high gradient cuz it just count piece and cnn/ transformer more balanced?}
-    \label{fig:square_placeholder}
-\end{figure}
+% \begin{figure}[H]
+%     \centering
+%     \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
+%     \caption{Gradient of individual squares plot, show like mlp often make queen high gradient cuz it just count piece and cnn/ transformer more balanced? Might be too out of topic}
+%     \label{fig:square_placeholder}
+% \end{figure}
 
 
 \section{Future Work}
@@ -863,13 +864,121 @@ We see the effect of inductive biases versus the underlying mechanism even more 
 \label{fig:train_val_loss_curves}
 \end{figure}
 
-\section{Transformer Attention Weights}
-\begin{figure}[H]
+\section{Unconstrained Linear Probe Maps}
+\label{sec:appendix_linear_probes}
+
+This section provides the visual projections created from the unconstrained (100\% positive target) linear probes. We can observe the emergent spatial representations for all 4 modes: Flat Bitboard, MLP, CNN and Transformer.
+
+[add some more analysis to fill the gap]
+%todo before submission: add a red ring for each target piece, make the black pieces have white border and white pieces have black border, make the gridlines a bit more obvious, svg should be same size
+
+% --- KNIGHT PROBES ---
+\begin{figure*}[ht]
     \centering
-    \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
-    \caption{Transformer attention weights}
-    \label{fig:square_placeholder}
-\end{figure}
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/raw_bitboards_knight} 
+        \caption{Flat Bitboard}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/mlp_knight}
+        \caption{MLP}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/cnn_knight}
+        \caption{CNN}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/transformer_knight}
+        \caption{Transformer}
+    \end{subfigure}
+    \caption{Unconstrained linear probe projections for the \textbf{Knight}.}
+    \label{fig:appendix_knight}
+\end{figure*}
+
+% --- BISHOP PROBES ---
+\begin{figure*}[ht]
+    \centering
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/raw_bitboards_bishop} 
+        \caption{Flat Bitboard}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/mlp_bishop}
+        \caption{MLP}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/cnn_bishop}
+        \caption{CNN}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/transformer_bishop}
+        \caption{Transformer}
+    \end{subfigure}
+    \caption{Unconstrained linear probe projections for the \textbf{Bishop}.}
+    \label{fig:appendix_bishop}
+\end{figure*}
+
+% --- ROOK PROBES ---
+\begin{figure*}[ht]
+    \centering
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/raw_bitboards_rook} 
+        \caption{Flat Bitboard}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/mlp_rook}
+        \caption{MLP}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/cnn_rook}
+        \caption{CNN}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/transformer_rook}
+        \caption{Transformer}
+    \end{subfigure}
+    \caption{Unconstrained linear probe projections for the \textbf{Rook}.}
+    \label{fig:appendix_rook}
+\end{figure*}
+
+% --- QUEEN PROBES ---
+\begin{figure*}[ht]
+    \centering
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/raw_bitboards_queen} 
+        \caption{Flat Bitboard}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/mlp_queen}
+        \caption{MLP}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/cnn_queen}
+        \caption{CNN}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.24\textwidth}
+        \centering
+        \includesvg[width=\linewidth]{images/linear_probes/transformer_queen}
+        \caption{Transformer}
+    \end{subfigure}
+    \caption{Unconstrained linear probe projections for the \textbf{Queen}.}
+    \label{fig:appendix_queen}
+\end{figure*}
 
 
 \end{multicols*}
