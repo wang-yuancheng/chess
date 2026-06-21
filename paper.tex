@@ -106,7 +106,6 @@
     }
 }\\
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \begin{document}
 
 %%%% Uncomment and insert the date if needed
@@ -120,7 +119,8 @@
 \begin{abstract}
 % abstract needs to be modified
 % 2nd note: We are required to submit the document in docx format. Need to completely shift this out of overleaf before submission.
-Deep neural networks have demonstrated exceptional capability across various domains, yet, how they reason and represent complex environments remains unclear. Although recent work has shown that models can implicitly track game states in such domains, less work has been done to compare the emergent spatial representations of different baseline architectures. This raises a question: How differently do these networks reason and form internal representations when presented with minimal information? We investigate this by benchmarking Multi-Layer Perceptrons (MLPs), Convolutional Neural Networks (CNNs) and Transformers on the task of static chess position evaluation without human knowledge and game rules. To decouple spatial geometric variance from the combinatorial complexity of the board, we introduce Mean Spatial Reach (MSR), which we show to be a stronger diagnostic metric than simply using the number of legal moves. Additionally, we use linear probing to show the differences in their latent representations and use saliency maps to help explain network predictions.
+Deep neural networks have demonstrated exceptional capability across various domains, yet how they reason and represent complex environments remains unclear. Although recent work has shown that models can implicitly track game states in such domains, less has been done to compare the emergent spatial representations of different baseline architectures. We investigate this by benchmarking Multi-Layer Perceptrons (MLPs), Convolutional Neural Networks (CNNs), and Transformers on the task of static chess position evaluation without a priori knowledge. Using linear concept probing and saliency maps, we highlight differences in their latent representations and rationalize network predictions. We further show, through the Spatial Variance Benchmark, that the superior performance of the Transformer as compared to the CNN is due to the attention mechanism's ability to capture scalable, long-range interactions better than convolutions.
+
 \end{abstract}
 
 % Include at least three keywords of phrases
@@ -128,38 +128,35 @@ Deep neural networks have demonstrated exceptional capability across various dom
 
 % --- Section 1: Introduction ---
 \section{Introduction}
+An active field of research in recent years is interpreting deep neural networks to uncover the inner mechanics driving their predictions. These networks are often trained on noisy, continuous, or unstructured data. Studies also regularly mix domain-specific knowledge into baseline architectures. As a result, the architecture's inductive biases become entangled with human-engineered priors, making it harder to determine what the models actually learned from the raw data when making predictions. To get a better understanding of these networks, we need a domain that is structured, complex, yet provides perfect information to the network. Chess fits these criteria perfectly, providing an environment with a set of strict rules and complex tactical interactions.
 
-Deep learning has been applied to numerous disciplines due to its advanced capabilities in tackling complex tasks. However, the inner mechanics driving decisions that deep neural networks make are difficult to interpret, an issue that has become an active field of research in recent years. Attempts in explainable artificial intelligence (XAI) in fields like natural language processing and computer vision have become increasingly successful \cite{alain2016understanding, belinkov2022probing}. Unfortunately, those networks are often trained on noisy, continuous or unstructured data. Studies also regularly mix domain-specific knowledge into baseline architectures. As a result, the architecture's inductive biases become entangled with human-engineered priors, making it harder to determine what the models actually learned from the raw data when making predictions.
+In this paper, we use chess as a testbed to observe how different architectures and their inductive biases lead to different discoveries and representations of spatial geometric patterns, which we shall refer to as the physical 2D arrangement of pieces, open space and long-range interactions, all without any knowledge of the game rules. While it has been shown that networks can implicitly track game states \cite{li2022emergent} and achieve grandmaster-level play without search through the scaling of parameters \cite{ruoss2024grandmaster}, less is known about how the inductive biases of different architectures compare when forced to discover these concepts under parameter constraints.
 
-To get a better understanding of some of the most commonly used baseline architectures, we need a domain that is structured, complex, yet provides perfect information to the network. A board game like chess fits these criteria perfectly. Moreover, it provides an environment with a set of strict rules that allows us to conduct various probing tests \cite{toshniwal2022chess}. Hence, we believe this is a great opportunity to observe how different architectures generalize and discover spatial geometric patterns, which we refers to as the physical 2D arrangement of pieces, open space and long-range interactions, all without any knowledge of game rules.
+This leads to our central question: How do the architectural inductive biases of different networks affect their ability to internalize the underlying rules and piece relationships of chess without context or search?
 
-This leads to our central question: Are deep networks able to internalize the underlying rules and piece relationships of chess without context or search? If so, how differently do they form an internal representation with the limited information provided to them? 
-
-In this paper, we evaluate three architectures using only the current board state and a ground-truth evaluation from the current state-of-the-art Stockfish engine. Beyond a simple Multi-Layer Perceptron (MLP) which we use as our non-spatial baseline, we focus on comparing a Squeeze-and-Excitation Convolutional Neural Network (SE-ResNet) \cite{he2016deep, hu2018squeeze} against an Encoder-only Transformer \cite{vaswani2017attention} to observe how their unique mechanics result in different emergent representations. 
-
-Because the networks were trained without any knowledge of the game rules, we use linear probes to investigate their internal representations of piece mobility. We also introduce Mean Spatial Reach (MSR) as a metric that decouples the geometric layout of the board from its combinatorial complexity. By using MSR to analyze performance across a rigorously controlled subset of positions, we show that the Transformer's attention mechanism captures long-range spatial dependencies much better than convolutions even with the existence of the SE layer. Lastly, through the use of saliency maps, we visualize how these different architectures prioritize features when making predictions.
+We evaluate three architectures using only the current board state and a ground-truth evaluation from the current state-of-the-art Stockfish engine. Beyond a simple Multi-Layer Perceptron (MLP) which we use as our non-spatial baseline, we focus on comparing a Squeeze-and-Excitation Convolutional Neural Network (SE-ResNet) \cite{he2016deep, hu2018squeeze} against an Encoder-only Transformer \cite{vaswani2017attention} to observe how their unique mechanisms result in different emergent representations. We also introduce Mean Spatial Reach (MSR) as a metric that decouples the geometric layout of the board from its combinatorial complexity. Using MSR, we construct a subset of test data which we call the Spatial Variance Benchmark, where we show that the Transformer's attention mechanism captures long-range spatial dependencies much better than convolutions even with the existence of the SE layer. Additionally, we leverage linear probes \cite{alain2016understanding} to investigate the different emergent internal representations of piece mobility. Lastly, using saliency maps \cite{simonyan2013deep}, we visualize and suggest reasons for these contrasting biases through two case studies of misclassifications. 
 
 % --- Section 2: Related Work  ---
 \section{Related Work}
 \subsection{Neural Chess Engines}
-Initial breakthroughs in computer chess \cite{lai2015giraffe, david2016deepchess} had shown that deep neural networks could replace manually tuned evaluation heuristics popular at that time. Those early models utilized MLPs, which remains as the backbone of Efficiently Updatable Neural Networks (NNUE) \cite{nasu2018efficiently} that powers state-of-the-art engines like Stockfish today. These engines leverage and improve on engineered input representations from previous generations such as piece to king relationships, along with advanced search algorithms to achieve superhuman play. Without these "add-ons", MLPs would see a flat input vector and have to learn chess concepts from scratch due to a lack of spatial information.
+Initial breakthroughs in computer chess \cite{lai2015giraffe, david2016deepchess} had shown that deep neural networks could replace manually tuned evaluation heuristics. These early models utilized MLPs, which rely heavily on engineered input representations along with advanced search algorithms to achieve superhuman play. Without that support, MLPs would lack the inductive biases needed to process spatial information. 
 
-Later, CNNs emerged as a dominant architecture, as they are capable of capturing spatial relationships without the need for manual feature engineering \cite{silver2017alphazero}. Eventually, it was shown that transformer based models can completely and efficiently internalize chess concepts, achieving grandmaster-level of play without any search algorithm or injection of domain specific knowledge \cite{ruoss2024grandmaster}.
+Subsequently, CNNs emerged as a dominant architecture with their native inductive bias capable of capturing spatial relationships without the need for manual feature engineering \cite{silver2017alphazero}. Even more recently, transformer-based models have advanced into computer chess. It was shown that the injection of domain-specific spatial inductive bias do improve the evaluation and playing strength of the models \cite{monroe2024mastering, monroe2026chessformer}.
 
 \subsection{Representation Learning}
-Probing techniques \cite{alain2016understanding} and attribution methods like saliency maps \cite{simonyan2013deep} are often used to analyze and interpret models. These methods have been applied to perfect information games, showing that networks do learn human concepts \cite{mcgrath2022acquisition} and develop internal representations of board state \cite{li2022emergent}. 
+Probing techniques \cite{alain2016understanding} and attribution methods like saliency maps \cite{simonyan2013deep} are often used to interpret models. These methods have been applied to perfect information games, showing that networks do learn human concepts \cite{mcgrath2022acquisition} and are able to form and track internal representations of board states \cite{li2022emergent}. 
 
-Furthermore, it was shown that vision transformers and convolutional neural networks form uniquely different features and structures \cite{raghu2021vision}. Building on their work, we provide a comparative analysis that clearly displays the strength of the Transformer in discovering and encoding spatial representations under strict constraints.
+Furthermore, it was shown that vision transformers and convolutional neural networks form uniquely different features and structures \cite{raghu2021vision}. Building on their work, we extend this comparison from standard image datasets to the domain of chess.
 
 % --- Section 3: Methodology  ---
 \section{Methodology}
 
 \subsection{Data} 
-Our dataset consists of approximately 5.8M unique board states downloaded and extracted from CCRL website (\url{www.computerchess.org.uk/ccrl/}). Each state $s$ is run through Stockfish 17 at a depth of 20, which gives a centipawn score describing the position's evaluation $E(s)$. We frame position evaluation as a 7-class classification problem by binning the centipawn scores $E(s)$ into four magnitude tiers: Equal ($|E(s)| < 100$), Better ($100 \le |E(s)| < 300$), Decisive Advantage ($300 \le |E(s)| < 500$) and Winning ($|E(s)| \ge 500$). Furthermore, we apply Gaussian label smoothing on $E(s)$ to generate soft targets over the 7 classes (see \hyperref[label_smoothing]{Appendix A.0.1}).
+Our dataset consists of approximately 5.8M unique board states downloaded and extracted from the CCRL website (\url{www.computerchess.org.uk/ccrl/}). Each state $s$ is run through Stockfish 17 at a depth of 20, which gives a centipawn score describing the position's evaluation $E(s)$. We frame position evaluation as a 7-class classification problem by binning the centipawn scores $E(s)$ into four magnitude tiers: Equal ($|E(s)| < 100$), Better ($100 \le |E(s)| < 300$), Decisive Advantage ($300 \le |E(s)| < 500$) and Winning ($|E(s)| \ge 500$). Furthermore, we apply Gaussian label smoothing on $E(s)$ to generate soft targets over the 7 classes (see \hyperref[label_smoothing]{Appendix A.0.1}).
 
-To ensure these models generalize well, we apply three more steps during the curation of the dataset. Firstly, we follow the methodology of \textit{Giraffe} \cite{lai2015giraffe} by applying one random legal move to each position in our dataset which introduces imbalanced and unstructured positions. Next, to prevent the trivial result of networks simply guessing the "Equal" class, we construct a perfectly uniform class distribution for both training and testing by under-sampling the "Equal" class and selectively augmenting minority classes via horizontal board mirroring. Then, we filter out volatile positions ($<1\%$ of the dataset) where evaluations fluctuates by more than one class between Stockfish depths of 10 and 20.
+To ensure these models generalize well, we apply three more steps during the curation of the dataset. Firstly, we follow the methodology of \textit{Giraffe} \cite{lai2015giraffe} by applying one random legal move to each position in our dataset, which introduces imbalanced and unstructured positions. Next, to prevent the trivial result of networks simply guessing the "Equal" class, we construct a perfectly uniform class distribution for both training and testing by under-sampling the "Equal" class and selectively augmenting minority classes via horizontal board mirroring. Then, we filter out volatile positions ($<1\%$ of the dataset) where evaluations fluctuate by more than one class between Stockfish depths of 10 and 20.
 
-Unlike standard neural chess engines that normalize inputs to the perspective of White, we preserve the absolute, unrotated board state so as to not inject the concept of spatial symmetry into training. While we also utilize horizontal board mirroring to augment our dataset, that merely samples from other valid, reachable game states. Finally, the dataset is split by games to prevent data leakage, with a ratio of 80/10/10 for training, validation and testing respectively. 
+Unlike standard neural chess engines that normalize inputs to the perspective of White, we preserve the absolute, unrotated board state so as to not inject the concept of spatial symmetry into training. While we also utilize horizontal board mirroring to augment our dataset, which merely samples from other valid, reachable game states. Finally, the dataset is split by games to prevent data leakage, with a ratio of 80/10/10 for training, validation and testing respectively. 
 
 \subsection{Input Representation} 
 We adopt a widely used multi-channel tensor for CNNs \cite{silver2017alphazero} and modify it accordingly for MLPs and Transformers. Because our models function as static evaluation functions for an alternating Markov game \cite{tang2024maia}, we do not include past game states and provide only the current position.
@@ -168,59 +165,56 @@ For CNNs, the board state is represented as a spatial feature stack: $\mathbf{X}
 
 For MLPs, we flatten the board into a 775-dimensional binary vector $\mathbf{x}_{\text{flat}} \in \{0,1\}^{775}$ by concatenating the 12 piece bitboards ($12 \times 64 = 768$) with a 7-dimensional vector $\mathbf{g} \in \{0, 1\}^{7}$ encoding the same information present in the spatial feature stack.
 
-For Transformers, we avoided the typical way of representing the board as a tokenized FEN string because we want to establish a one-to-one mapping between sequence tokens and each of the 64 squares on the board. This way, it preserves the spatial geometry of the board. Hence, we simply reshape the $19 \times 8 \times 8$ feature stack into a sequence of 64 tokens, where each token $\mathbf{t}_i \in \{0, 1\}^{19}$ represents the complete state of a single square.
+For Transformers, we avoided the typical way of representing the board as a tokenized FEN string because we wanted to establish a one-to-one mapping between sequence tokens and each of the 64 squares on the board. This way, we preserve the spatial representation of the board. Hence, we simply reshape the $19 \times 8 \times 8$ feature stack into a sequence of 64 tokens, where each token $\mathbf{t}_i \in \{0, 1\}^{19}$ represents the complete state of a single square.
 
 \subsection{Model Architectures}
 For clarity and consistency throughout this paper, we adopt this naming convention: [Architecture]-[Depth], where the numerical suffix indicates the total number of hidden layers or computational blocks (i.e., MLP-5, SE-ResNet-16, and Transformer-6).
 
-\textbf{Multi-Layer Perceptrons.}\enskip To establish a baseline, we implement a standard sequential MLP. We deliberately keep the architecture straightforward to observe how a network learns using just raw parameter capacity. As expected, the model overfitted very quickly in initial experiments. Hence, we apply Batch Normalization \cite{ioffe2015batch} and Dropout \cite{srivastava2014dropout} after each layer. We experimented with different depths and widths, but found that these modifications yielded diminishing returns (see \hyperref[mlp_details]{Appendix A.1.1} for exact formulations and ablations).
+\textbf{Multi-Layer Perceptrons.}\enskip To establish a baseline, we implement a standard sequential MLP. We deliberately keep the architecture straightforward to observe how a network learns using just raw parameter capacity. As expected, the models overfitted very quickly in initial experiments. Hence, we apply Batch Normalization \cite{ioffe2015batch} and add Dropout \cite{srivastava2014dropout} after each layer. We experimented with different depths and widths, but found that these modifications yielded diminishing returns (see \hyperref[mlp_details]{Appendix A.1.1} for exact formulations and ablations).
 
-\textbf{Convolutional Neural Networks.}\enskip We implement a deep residual neural network (ResNet) \cite{he2016deep} with Squeeze-and-Excitation (SE) blocks \cite{hu2018squeeze}, similar to older versions of the then state-of-the-art Leela Chess Zero engine. The raw input state $\mathbf{X}_{\text{stack}} \in \{0, 1\}^{19 \times 8 \times 8}$ is first projected to a higher-dimensional feature space via an initial convolution. It is then passed through a series of residual blocks, each containing two $3 \times 3$ convolutional layers followed by an SE block. Additionally, we apply Stochastic Depth \cite{huang2016deep} ($\text{DropPath}$) to the residual branches during training to regularize the network. We use global average pooling in both our SE blocks and the final classifier head, as this approach outperformed standard feature flattening in our initial experiments (see \hyperref[cnn_details]{Appendix A.1.2} for exact formulations and ablations).
+\textbf{Convolutional Neural Networks.}\enskip We implement a deep residual neural network (ResNet) \cite{he2016deep} with Squeeze-and-Excitation (SE) blocks \cite{hu2018squeeze}, similar to older versions of the then-state-of-the-art Leela Chess Zero engine. The raw input state $\mathbf{X}_{\text{stack}} \in \{0, 1\}^{19 \times 8 \times 8}$ is first projected to a higher-dimensional feature space via an initial convolution. It is then passed through a series of residual blocks, each containing two $3 \times 3$ convolutional layers followed by an SE block. Additionally, we apply Stochastic Depth \cite{huang2016deep} ($\text{DropPath}$) to the residual branches during training to regularize the network. We use global average pooling in both our SE blocks and the final classifier head, as this approach outperformed standard feature flattening in our initial experiments (see \hyperref[cnn_details]{Appendix A.1.2} for exact formulations and ablations).
 
-\textbf{Transformers.}\enskip We implement an Encoder-only Transformer without providing it any information on how each square relates to another. First, the tokens $\mathbf{t}_i \in \{0, 1\}^{19}$ are linearly projected into a higher-dimensional embedding space, followed by a ReLU activation and Layer Normalization. However, as chess is not permutation invariant but self-attention is, we initialize the network with randomized 1D positional embeddings to allow the independent discovery of square relationships. The sequence is then passed through a tower of Transformer encoder blocks. Here, we utilize DeepNorm \cite{wang2024deepnet} over PreNorm as we found it yielded better results while maintaining similar training stability. Finally, the sequence of 64 updated square tokens is aggregated via global average pooling to produce a new state representation, which is then passed to a standard linear classification head. (see Appendix \hyperref[transformer_details]{Appendix A.1.3} for exact formulations and ablations).
+\textbf{Transformers.}\enskip We implement an Encoder-only Transformer without providing it with any information on how each square relates to another. First, the tokens $\mathbf{t}_i \in \{0, 1\}^{19}$ are linearly projected into a higher-dimensional embedding space, followed by a ReLU activation and Layer Normalization. However, as chess is not permutation invariant but self-attention is, so we initialize the network with randomized 1D positional embeddings to allow the independent discovery of square relationships. The sequence is then passed through a tower of Transformer encoder blocks. Here, we utilize DeepNorm \cite{wang2024deepnet} over PreNorm as we found it yielded better results while maintaining similar training stability. Finally, the sequence of 64 updated square tokens is aggregated via global average pooling to produce a new state representation, which is then passed to a standard linear classification head. (see Appendix \hyperref[transformer_details]{Appendix A.1.3} for exact formulations and ablations).
 
 \subsection{Evaluation and Analysis}
 We constrain the parameter capacity of all evaluated models to approximately 1.2M to ensure fair comparisons. We use standard top-1 accuracy and off-by-1 accuracy (predicting an adjacent class) to evaluate each model. Additionally, we apply the following methods for analysis:
 
-
-\textbf{Mean Spatial Reach.}\enskip Standard metrics like piece count and legal moves (branching factor) provide a great way to quantify the combinatorial complexity of a position. However, they fail to capture its geometric layout. Furthermore, quantification of boards using the number of legal moves is highly volatile depending on the side to move. The architectural inductive biases can be better understood when we decouple this combinatorial complexity from spatial complexities. Hence, we introduce Mean Spatial Reach (MSR), which quantifies the average spatial control (line of sight) pieces have over the board. For $N$ pieces, we compute the Chebyshev distance to every valid square $s$ a piece $p$ attacks or defends, including empty squares to account for the control of open space:
+\textbf{Mean Spatial Reach.}\enskip Standard metrics like piece count and legal moves (branching factor) provide a great way to quantify the combinatorial complexity of a position. However, they fail to capture its geometric layout. Furthermore, quantification of boards using the number of legal moves is highly volatile depending on the side to move. The architectural inductive biases can be better understood when we decouple this combinatorial complexity from spatial complexities. Hence, we introduce Mean Spatial Reach (MSR), which quantifies the average spatial control (line of sight) pieces have over the board. For $N$ pieces, we compute the Chebyshev distance to every valid square $s$ that a piece $p$ attacks or defends, including empty squares to account for the control of open space:
 \[MSR = \frac{1}{N} \sum_{p=1}^{N} \sum_{s \in attacks(p)} \text{Chebyshev}(p, s)\]
 
-As the game progresses and pieces are captured, the board density and branching factor of positions generally drops. For instance, in a dense middlegame, tight pawn structures often result in the lack of long-range interactions, causing the MSR of that position to be low. On the other hand, in open-board late games, the presence of long-range pieces likely increases the MSR of that position. 
+As the game progresses and pieces are captured, the board density and branching factor of positions generally drop. For instance, in a dense middlegame, tight pawn structures often result in a lack of long-range interactions, causing the MSR of that position to be low. On the other hand, in open-board late games, the presence of long-range pieces likely increases the MSR of that position. 
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}{0.48\linewidth}
         \centering
-        \includesvg[width=\linewidth]{images/low_msr_white_rook} 
+        \includegraphics[width=\linewidth]{images/low_msr_white_rook.png} 
         \caption{\textbf{MSR = 5.71}}
         \label{fig:board_low_msr}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\linewidth}
         \centering
-        \includesvg[width=\linewidth]{images/high_msr_white_rook}
+        \includegraphics[width=\linewidth]{images/high_msr_white_rook.png}
         \caption{\textbf{MSR = 19.14}}
         \label{fig:board_high_msr}
     \end{subfigure}
     
-    \caption{Example of 2 positions with the similar combinatorial complexity but different MSR. The highlighted squares depict the spatial reach of the White Rook.}
+    \caption{Example of 2 positions with similar combinatorial complexity but different MSR. The highlighted squares depict the spatial reach of the White Rook.}
     \label{fig:msr_comparison}
     \vspace{-1.5em}
 \end{figure}
 
-To be able to conduct tests where the spatial variance (the variance of the spatial control different positions have in the dataset) varies widely while not have it overshadowed by combinatorial complexity, we construct a heavily stratified open-board environment (Material $\in [0, 32]$, Piece Count $\in [2, 16]$) from our test dataset. We further stratify this dataset by fixing three control variables: Total Material Score, Total Piece Count, and Sliding Piece Ratio, which we shall refer to as the Spatial Variance Benchmark. Additionally, we remove positions containing Knights from the benchmark. This is because Knights have a fixed spatial reach of $d=2$, which suppresses the metric's dynamic range. Moreover, it introduces combinatorial noise, such as generating up to 8 legal moves without contributing to scalable spatial geometry. These stratifications ensures any variance in model performance would be due to changes in spatial arrangements, allowing us to better evaluate the differences in spatial inductive biases of our models (see \hyperref[sec:msr_stratification]{Appendix C} for full stratification methodology). 
+To be able to conduct tests where the spatial variance (the variance of the spatial control different positions have in the dataset) varies widely while not having it overshadowed by combinatorial complexity, we construct a heavily stratified open-board environment (Material $\in [0, 32]$, Piece Count $\in [2, 16]$) from our test dataset. We further stratify this dataset by fixing three control variables: Total Material Score, Total Piece Count, and Sliding Piece Ratio, which we shall refer to as the Spatial Variance Benchmark. Additionally, we remove positions containing Knights from the benchmark. This is because Knights have a fixed spatial reach of $d=2$, which suppresses the metric's dynamic range. Moreover, it introduces combinatorial noise, such as generating up to 8 legal moves without contributing to scalable spatial geometry. These stratifications ensure any variance in model performance would be due to changes in spatial arrangements, allowing us to better evaluate the differences in spatial inductive biases of our models (see \hyperref[sec:msr_stratification]{Appendix C} for full stratification methodology). 
 
-\textbf{Linear Probing.}\enskip Because the networks were trained as static evaluation functions without knowledge of the game rules, we probe their latent representations to determine if any linearly separable concepts regarding piece movements emerged. Initial experiments showed that a single linear probe lacked the non-linearity required to internalize how every single piece moved simultaneously. Hence, we train piece-specific linear probes to predict the legality of moves to all possible squares given a position. For each probe, we train it with two different sets of data. Firstly, we balance the dataset such that 50\% of the samples evaluate the target piece, while the other 50\% evaluates non-target pieces (e.g. evaluates a Bishop for a Knight probe) or empty squares, in which moves to any square are labeled as illegal. This tests if the networks can simultaneously identify piece presence and determine legal moves. Secondly, we modify the dataset such that 100\% of the samples evaluate the target piece. This is done so that the probe focuses entirely on separating possible representations of piece movements. The probes are attached to the deepest possible parts before dimensionality reduction significantly degrades representations (see \hyperref[probe_locations]{Appendix B.1}). Lastly, we also train a control probe with raw bitboards by passing the flattened state vector (the same input provided to the MLP) directly into the linear classification probe.
+\textbf{Linear Probing.}\enskip Because the networks were trained as static evaluation functions without knowledge of the game rules, we probe their latent representations to determine if any linearly separable concepts regarding piece movements emerged. Initial experiments showed that a single linear probe lacked the non-linearity required to internalize how every single piece moves simultaneously. Hence, we train piece-specific linear probes to predict the legality of moves to all possible squares given a position. For each probe, we train it with two different sets of data. Firstly, we balance the dataset such that 50\% of the samples evaluate the target piece, while the other 50\% evaluates non-target pieces (e.g. evaluates a Bishop for a Knight probe) or empty squares, in which moves to any square are labeled as illegal. This tests if the networks can simultaneously identify piece presence and determine legal moves. Secondly, we modify the dataset such that 100\% of the samples evaluate the target piece. This is done so that the probe focuses entirely on separating possible representations of piece movements. The probes are attached to the deepest possible parts before dimensionality reduction significantly degrades representations (see \hyperref[probe_locations]{Appendix B.1}). Lastly, we also train a control probe with raw bitboards by passing the flattened state vector (the same input provided to the MLP) directly into the linear classification probe.
 
-\textbf{Saliency Maps.}\enskip We can use gradients calculated from backpropagation to give possible explanations of network predictions by visualizing input sensitivity with saliency maps~\cite{simonyan2013deep}. Unlike standard RGB images, where we commonly take the maximum gradient across the color channels, the inputs we described previously are sparse and mutually exclusive (a square can only contain one piece). To ensure we do not discard meaningful information about any potential piece when determining the total input sensitivity of each square, we construct the saliency map $M \in \mathbb{R}^{8 \times 8}$ by summing the magnitude of the gradients across all 12 piece channels:
-\[M_{ij} = \sum_{k=1}^{12} | \mathbf{W}_{kij} |\]
-where $\mathbf{W}_{kij}$ denotes the gradient element for piece channel $k$ at rank $i$ and file $j$.
+\textbf{Saliency Maps.}\enskip We can use gradients calculated from backpropagation to give possible explanations of network predictions by visualizing input sensitivity with saliency maps~\cite{simonyan2013deep}. For each square, we sum the magnitude of the gradients across all 12 piece channels (see \hyperref[sec:saliency_maps]{Appendix D} for the details). While our MSR-based benchmark and linear probes provide quantitative evidence of the networks' spatial generalization and separability of concepts in the latent representation, they do not show qualitative context of failures due to limitations from their intrinsic inductive biases. Because attribution methods are susceptible to gradient fluctuations, especially in domains like chess where a single perturbation in the input can significantly alter predictions, we use them only to contextualize our quantitative findings. We present two case studies that stem from misclassifications of positions, and subsequently, we use saliency maps for those positions to suggest possible reasons for those failures.
 
 % --- Section 4: Results  ---
 \section{Results}
 \label{sec:results}
-We select the following baseline models for all comparative analysis in \hyperref[sec:results]{Section 4} unless stated otherwise: \hyperref[mlp_details]{MLP-5}, \hyperref[cnn_details]{SE-ResNet-16}, and \hyperref[transformer_details]{Transformer-6}.
+We select these models as baselines for all analysis in this section: \hyperref[mlp_details]{MLP-5} as MLP, \hyperref[cnn_details]{SE-ResNet-16} as CNN, and \hyperref[transformer_details]{Transformer-6} as Transformer.
 \begin{table}[H] % Forces vertical placement
     \centering
     \caption{Performance comparison of baseline models.}
@@ -236,7 +230,7 @@ We select the following baseline models for all comparative analysis in \hyperre
     \vspace{-1em}
 \end{table}
 
-Our results reveal the Transformer as the clear winner for static chess position evaluation under constraints as shown in Table \ref{tab:main_results}. Despite providing the CNN with SE Blocks that gives additional global context of the board, it was unable to outperform the attention mechanism of the Transformer. However, these performance metrics provide little insights into how differently they form internal representations. 
+Our results reveal the Transformer as the clear winner for static chess position evaluation under constraints as shown in Table \ref{tab:main_results}. The full training curves are provided in \hyperref[sec:training_curves]{Appendix E}. Despite providing the CNN with SE Blocks that gives additional global context of the board, it was unable to outperform the attention mechanism of the Transformer. To understand these architectures and internal representations further, we need to look beyond these performance metrics. 
 
 \subsection{Spatial Variance Benchmark}
 We examine the performance difference ($\Delta_{acc}$) between the Transformer and CNN with the Spatial Variance Benchmark established from Section 3.4. \autoref{fig:msr_scatter} shows the scatter plots of $\Delta_{acc}$ against both Mean Spatial Reach (MSR) and Legal Moves. In this controlled environment, we observe that the number of legal moves loses statistical significance ($r = 0.461$, $p = 0.084^{\text{ns}}$) when correlating with the difference in the models' performance. On the other hand, MSR remains statistically significant ($r = 0.620$, $p = 0.014^{*}$) in displaying a positive correlation.
@@ -312,16 +306,16 @@ We examine the performance difference ($\Delta_{acc}$) between the Transformer a
     \vspace{-1.5em}
 \end{figure}
 
-While the Transformer always perform better than the CNN regardless of the number of pieces on the board (see \autoref{fig:combined_acc}), the positive correlation we see in the $\Delta_{acc}$ against MSR confirms that the reason is because the Transformer excels in positions that contain many pieces with long-range interactions.
+While the Transformer always performs better than the CNN regardless of the number of pieces on the board (see \autoref{fig:combined_acc}), the positive correlation we see in the $\Delta_{acc}$ against MSR confirms that this is because the Transformer excels in positions that contain many pieces with long-range interactions.
 
-We further verify that this correlation isolates scalable spatial geometry by selecting positions that must contain Knights (see \autoref{tab:open_board_ablation}, Test 4*). Introducing these pieces immediately caused the correlation with the Transformer's advantage to collapse into random noise ($r = 0.234$, $p =  0.515^{\text{ns}}$). Because Knights have a fixed short-range spatial reach ($d=2$), the data proves that the Transformer's advantage is not because it can handle positions with high combinatorial complexities. Instead, the advantage itself, is due to the ability to better resolve long-range interactions.
+We further verify that this correlation isolates scalable spatial geometry by selecting positions that must contain Knights (see \autoref{tab:open_board_ablation}, Test 4*). Introducing these pieces immediately caused the correlation with the Transformer's advantage to collapse into random noise ($r = 0.234$, $p =  0.515^{\text{ns}}$). Because Knights have a fixed short-range spatial reach ($d=2$), the data proves that the Transformer's advantage is not due to its ability to handle positions with high combinatorial complexities. Instead, the advantage itself is due to the ability to better resolve long-range interactions.
 
 \subsection{Emergent Representations}
-With linear probes, we can examine the internal representations of our networks. We call the linear probes with 50\% target piece presence Constrained Linear Probes and the other with 100\% target piece presence Unconstrained Linear Probe.
+We examine the internal representations of our networks with linear concept probing. The F1 scores are calculated with a threshold such that a probability of $\geq 50\%$ for any given square is considered as a legal move to that square.
 
 \begin{table}[H]
 \centering
-\caption{Constrained Linear Probe F1 Scores (\%) for legal move prediction (50\% target piece presence).}
+\caption{Linear Probe F1 Scores (\%) for legal move prediction (50\% target piece presence).}
 \label{tab:probe_f1_scores}
 % Adjust the value below. Smaller = less space between columns (Default is usually 6pt)
 \setlength{\tabcolsep}{5.8pt} 
@@ -336,11 +330,11 @@ Transformer & 81.73 & \textbf{71.71} & \textbf{67.75} & \textbf{65.72} \\ \botto
 \vspace{-1em}
 \end{table}
 
-\autoref{tab:probe_f1_scores} shows that the latent representations within the MLP and CNN contain much less linearly separable information regarding legal moves than the raw input. Surprisingly, the Transformer's latent representation preserves, and in some cases, contain more linearly separable information. This difference is even more pronounced when we look at the F1-scores of the probes trained with the dataset that only contain 100\% the target piece.
+\autoref{tab:probe_f1_scores} shows that the latent representations within the MLP and CNN contain much less linearly separable information regarding legal moves than the raw input. Surprisingly, the Transformer's latent representation preserves, and in some cases, contains more linearly separable information. This difference is even more pronounced when we look at the probes trained with the dataset containing 100\% the target piece.
 
 \begin{table}[H]
 \centering
-\caption{Unconstrained Linear Probe F1 Scores (\%) for legal move prediction (100\% target piece presence).}
+\caption{Linear Probe F1 Scores (\%) for legal move prediction (100\% target piece presence).}
 \label{tab:unconstrained_probe_f1_scores}
 \setlength{\tabcolsep}{5.8pt} 
 \begin{tabular}{@{}lcccc@{}}
@@ -354,121 +348,99 @@ Transformer & \textbf{96.83} & \textbf{91.19} & \textbf{87.89} & \textbf{86.84} 
 \vspace{-1em}
 \end{table}
 
-When we remove the need to identify if the target piece is on the selected square, the probe for the Transformer performs exceptionally well while that of the other architectures continue to lag far behind, as shown in \autoref{tab:unconstrained_probe_f1_scores}. Furthermore, it now outperforms the the Flat Bitboard on all 4 piece probes. While the raw bitboards provide lossless information, deriving valid piece trajectories directly require non-linear conditional logic that the linear probe cannot execute. The results show that the Transformer have not just preserved, but enhanced the features of the initial input representation with its self-attention layers.
-
-By plotting each probe's output probability of whether a move is legal or not (legal if $\geq$ 50\% probability) for all squares, we can visually see the differences. 
-
+When we remove the need to identify whether the target piece is on the selected square, all probes see an improvement in performance. Crucially, the performance of the Transformer probe now beats that of the Flat Bitboard across the board (see \autoref{tab:unconstrained_probe_f1_scores}). While the bitboards provide lossless information, deriving valid piece trajectories directly require non-linear conditional logic that the linear probe cannot execute. The results show that the Transformer has not just preserved, but enhanced the features of the initial input representation. Surprisingly, even though the Knight's spatial reach ($d=2$) aligns with the $3 \times 3$ receptive fields, it performed poorly, suggesting that routing point-to-point interactions through convolutional kernels results in non-linear representations.
+ 
 \begin{figure}[H]
     \centering
     \begin{subfigure}{0.48\linewidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/cnn_bishop} 
+        \includegraphics[width=\linewidth]{images/linear_probes/cnn_bishop.png}
         \caption{\textbf{CNN}}
         \label{fig:linear_probe_comparison_bishop_cnn}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\linewidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/transformer_bishop}
+        \includegraphics[width=\linewidth]{images/linear_probes/tf_bishop.png}
         \caption{\textbf{Transformer}}
         \label{fig:linear_probe_comparison_bishop_transformer}
     \end{subfigure}
     
-    \caption{Unconstrained Bishop probe probability maps for the CNN and Transformer.}
+    \caption{Bishop probe probability maps for the CNN and Transformer (100\% target piece presence). Colors represent legal move probability: 0.0 (dark purple) to 1.0 (yellow).}
     \label{fig:linear_probe_comparison_bishop}
     \vspace{-1.5em}
 \end{figure}
 
-\autoref{fig:linear_probe_comparison_bishop} reveal three differences that highlight the architectural inductive biases which affect spatial representations:
+\textbf{Target Square Resolution.}\enskip The rule of not being able to capture friendly pieces is a fundamental rule in Chess. However, the representations formed by the CNN (and the MLP) are not linearly decodable, resulting in the high probabilities assigned to squares occupied by pieces of the same color as seen in \autoref{fig:linear_probe_comparison_bishop_cnn}. In contrast, the Transformer's latent space preserves this concept linearly, allowing the probe to suppress activations easily on friendly pieces as shown in \autoref{fig:linear_probe_comparison_bishop_transformer}.
 
-\textbf{Target Square Resolution.}\enskip The rule of not being able to capture friendly pieces is a fundamental rule in Chess. However, the representations formed by the CNN (and the MLP) is not linearly decodable, resulting in the high probabilities assigned to squares occupied by pieces of the same color as seen in \autoref{fig:linear_probe_comparison_bishop_cnn}. In contrast, the Transformer's latent space preserves this concept linearly, allowing the probe to suppress activations easily on friendly pieces as shown in \autoref{fig:linear_probe_comparison_bishop_transformer}.
+\textbf{Piece occlusion.}\enskip The representations must contain linearly decodable information regarding piece occlusion (pieces blocking the line of sight of the target piece) for the probe to accurately determine long-range piece mobility. This conditional logic is not linearly accessible in the CNN's (and MLP's) latent representations, causing the probe to project "movement rays" directly through pieces, as seen in \autoref{fig:linear_probe_comparison_bishop_cnn}. Although the Transformer Probe depict arguably perfect results in \autoref{fig:linear_probe_comparison_bishop_transformer}, it often leaves residual probability on the immediate square behind the occluder before completely dropping to zero (see \hyperref[sec:appendix_linear_probes]{Appendix F}). 
 
-\textbf{Piece occlusion.}\enskip The representations must contain linearly decodable information regarding piece occlusion (pieces blocking the line of sight of the target piece) for the probe to accurately determine long-range piece mobility. This conditional logic is is not linearly accessible in the CNN's (and MLP's) latent representations, causing the probe to project "movement rays" directly through pieces seen in \autoref{fig:linear_probe_comparison_bishop_cnn}. Although the Transformer Probe depict arguably perfect results in \autoref{fig:linear_probe_comparison_bishop_transformer}, it often leaves residual probability on the immediate square behind the occluder before completely dropping to zero (see \hyperref[sec:appendix_linear_probes]{Appendix E}). 
+\textbf{Spatial Fading.}\enskip In the CNN's latent space, the linearly accessible information regarding legal moves steadily decays as the Chebyshev distance from the target piece increases. We hypothesize that this is the result of feature  degradation caused by routing these long-range piece dynamics through multiple layers and overlapping receptive fields of the convolutional kernels. In contrast, the Transformer probe is able to output uniform and high probabilities for squares even after increasing distance, because it has established an $O(1)$ spatial routing path between any two squares within a single attention layer.
 
-\textbf{Spatial Fading.}\enskip In the CNN's latent space, the linearly accessible information regarding legal moves steadily decays as the Chebyshev distance from the target piece increases. We hypothesize that this is the result of feature  degradation caused by routing these long-range piece dynamics through multiple layers and overlapping receptive fields of the inherent $3 \times 3$ convolutional kernels. In contrast, the Transformer probe is able to output uniform and high probabilities for squares even after increasing distance. By establishing an $O(1)$ spatial routing path between any two squares within a single attention layer, the Transformer is able bypass the problem of feature degradation seen in the CNN.
-
-\subsection{Visual Interpretability \& Failure Analysis}
-[Saliency Maps, Gradient Analysis
-% no grad-cam or transformer attention weights
-
-% If required: Note: While the 4-head model is used for strict parameter-matched performance metrics, visualizations are derived from an 8-head variant. The expanded attention subspace reduces polysemanticity, allowing the network to cleanly disentangle distinct spatial geometries (e.g., orthogonal lines vs. knight jumps). OR Notably, for the qualitative visualization of attention mechanisms, we utilize an 8-head variant of our Transformer baseline to better disentangle distinct spatial motifs.
-
-The hard negatives. Show the 2x Saliency failures alongside the diverging colormaps (Difference Maps) and the individual square gradient plots.
-
-\textbf{Failure analysis}\enskip We focus on 3 main situations. Mention that with more data these information might be solved better?
-1. Transformer is Correct (+ MLP doesn't matter) and CNN is Wrong ($\ge 3$ classes).
-Guess: CNN is bad a long range piece dynamics.
-2. CNN is Correct (+ MLP doesn't matter) and Transformer is Wrong ($\ge 3$ classes).
-Guess: Transformer looks at everything at once. Sometimes, the Transformer's self-attention gets distracted by a piece and misses the overall picture (such as no. of pieces)
-3. Transformer and CNN are Correct, but MLP is Catastrophically Wrong.
-Guess: 2D information is important but MLP flattens to 1D
-% Operating under a strict data budget acts as a stress test for representation capacity, forcing the architectures to rely heavily on their intrinsic structural biases.
-% This is the place to show that the transformer is not all powerful and, under some constraints etc, may overlook "obvious" things.
-
+\subsection{Failure Analysis}
+Because our models evaluate positions without look-ahead algorithms, the selected case studies only feature tactical imbalances that can be derived entirely from the static board state. \autoref{fig:case_1} features a position with a long-range \textit{skewer} tactic (Ra8+), while \autoref{fig:case_2} features a dense tactical cluster near the bottom of the position, where the White King faces short-range pressure from the Black Queen and a pawn near promotion.
 
 \begin{figure}[H]
     \centering
-    \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
-    \caption{2 Examples: CNN hard negative, Transformer hard positive, Saliency difference map}
-    \label{fig:square_placeholder}
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/saliency_maps/case_1_w_cnn_3.png}
+        \caption{\textbf{CNN}}
+        \label{fig:case_1_w_cnn}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/saliency_maps/case_1_w_tf_0.png}
+        \caption{\textbf{Transformer}}
+        \label{fig:case_1_w_tf}
+    \end{subfigure}
+    \caption{Case Study 1: Long-range Skewer. \textit{White to move}. CNN evaluation: Draw, Transformer evaluation: White Winning, Stockfish ground truth: White Winning.}
+    \label{fig:case_1}
+    \vspace{-1.5em}
 \end{figure}
+
+From the Transformer's saliency map (\autoref{fig:case_1_w_tf}), we observe high gradient magnitude on the critical landing square (a8) for the skewer. Conversely, this is absent in the CNN's saliency map (\autoref{fig:case_1_w_cnn}). This concentrated attribution on specific tactical squares aligns with representing each square as a discrete token in the Transformer's architectural design, where it learns its own positional encoding and is hence able to form direct, square-to-square relationships. In contrast, the CNN processes the board through convolutional kernels, resulting in input sensitivities to be rather distributed across localized clusters.
 
 \begin{figure}[H]
     \centering
-    \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
-    \caption{2 Examples: Transformer hard negative, CNN hard positive, saliency difference map}
-    \label{fig:square_placeholder}
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/saliency_maps/case_2_w_cnn_6.png}
+        \caption{\textbf{CNN}}
+        \label{fig:case_2_w_cnn}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/saliency_maps/case_2_w_tf_0.png}
+        \caption{\textbf{Transformer}}
+        \label{fig:case_2_w_tf}
+    \end{subfigure}
+    \caption{Case Study 2: Transformer Failure. \textit{White to move}. CNN evaluation: Black Winning, Transformer evaluation: White Winning, Stockfish ground truth: Black Winning.}
+    \label{fig:case_2}
+    \vspace{-1.5em}
 \end{figure}
 
-
+While the inductive bias of the CNN limits the extraction of long-range interactions, it provides robustness in short-range engagements. We see this clearly in \autoref{fig:case_2_w_cnn}, where the CNN places its focus on the clustered threat towards the White King, enabling a correct evaluation of the position. In contrast, the saliency map for the Transformer reveals a concentration of gradients on the key square (e6) for a \textit{double attack} on the Black Rook and King in \autoref{fig:case_2_w_tf}. By heavily attributing its evaluation to this long-range \textit{double attack} and comparatively less towards the threat to the White King, the Transformer suffers a complete misclassification of the position.  
 
 
 % --- Section 5: Discussion  ---
 \section{Discussion}
-% MSR
-% This contrast highlights a fundamental difference in how these architectures route spatial information during a static forward pass. Because our models evaluate positions without any lookahead search, they must resolve board dynamics entirely within their latent representations. The CNN relies on localized $3 \times 3$ kernels. To evaluate a long-range interaction—such as a Bishop pinning a Rook across the board—the network must propagate activations through multiple residual layers. This layer-by-layer diffusion inherently dilutes precise geometric relationships, a bottleneck that even Squeeze-and-Excitation global pooling struggles to overcome. Conversely, the Transformer's self-attention mechanism provides an $O(1)$ computational path length between any two squares on the board. This allows it to naturally construct and evaluate the emergent, long-range spatial line-of-sights mathematically captured by MSR.
-% This confirms that the localized $3 \times 3$ kernels of the CNN, despite Squeeze-and-Excitation global pooling, are fundamentally bottlenecked in capturing long-range spatial dependencies. Conversely, these emergent geometric relationships are naturally modeled by the Transformer's self-attention mechanism.
+Our findings present a paradoxical situation in which the Transformer, despite lacking spatial priors, forms a more linearly decodable spatial representation than the CNN that possesses spatial inductive biases. The ability to learn its own representation of the board state allows the Transformer to map the board into a latent space where spatial routing is unbounded by the physical limitations of the chessboard. While our empirical observations note that MLPs typically default to material counting for evaluation, and that CNNs can find simple long-range piece interactions (e.g. high gradients on a square with a hanging piece), they both struggle to highlight more complex long-range tactics. Our ablations (\autoref{cnn_classifier_head}) also show that replacing pooling with basic feature flattening yields no performance gain, confirming that the loss of spatial information is not entirely due to pooling but likely due to the entanglement of coordinates during the forward pass through overlapping receptive fields.
 
-% if it is stored non linearly, then whats the point? the transformer store it linearly and the cnn store it non lienarly whats the big deaTransformer inductive bias or mechanism somehow engrained piece occlusion information in its latent representations. On the other hand, the cnn convolutions etc etc did not, or had less.
-% Readability for the Final Head: Your models (MLP, CNN, Transformer) all end with a linear classification head (or global average pooling into a linear head). If a crucial feature like "friendly piece occlusion" is locked behind a highly non-linear, entangled representation, the final linear classification head cannot easily use it. The Transformer pre-processes the data so cleanly that the final layer just has to read it. The CNN leaves a tangled mess that the final layer struggles to parse. Feature Abstraction: When a concept is linearly decodable, it means the network has discovered that concept as a fundamental, independent "direction" in its latent space. It has truly abstracted the rule. When it is non-linear, it usually means the network is relying on localized memorization or messy heuristics rather than a clean abstraction. Generalization: Linearly separated representations are notoriously more robust. If the Transformer linearly isolates the "cannot capture friendly piece" rule, it will apply that rule flawlessly to unseen positions. If the CNN has it entangled, it might fail in edge-case board states because it never explicitly isolated the rule.
-
-[Inductive Bias Trade-offs, proved that spatial geometry learnable.]
-turn bit, 3 fold repetition blind, did not include a 3 fold repetition bit in input representation because...
-
-
-\begin{figure}[H]
-    \centering
-    \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
-    \caption{saliency map of poster all 3 and talk about the irony}
-    \label{fig:square_placeholder}
-\end{figure}
-
-% \begin{figure}[H]
-%     \centering
-%     \framebox[4cm]{\rule{0pt}{4cm} Image Placeholder}
-%     \caption{Gradient of individual squares plot, show like mlp often make queen high gradient cuz it just count piece and cnn/ transformer more balanced? Might be too out of topic}
-%     \label{fig:square_placeholder}
-% \end{figure}
-
-
-\section{Future Work}
-Proving Causality (Interventions): Altered the AI's internal memory mid-computation, which instantly changed its next-move predictions to match the fake layout. This proves the internal map actively dictates the model's decisions.
-Latent Saliency Maps: By tweaking these internal tile states and observing the resulting prediction changes, researchers visually mapped exactly which board pieces the AI focuses on to choose its strategy.
-
+\textbf{Limitations.}\enskip Our formulation for Mean Spatial Reach cannot capture higher-order lines of sight (e.g., stacked Rooks). Positions that contain such interactions significantly affect the evaluation of positions, but they are suppressed by MSR and introduces variance into our correlation plots. Additionally, our analysis is bounded by a 1.2M parameter capacity constraint. While recent work has shown that Transformers can play at the Grandmaster level using only static evaluations at 270M parameters \cite{ruoss2024grandmaster}, it remains an open question on whether immense scaling of parameters for CNNs would eventually allow them to bypass the spatial routing bottlenecks we demonstrated in this paper and lead to a considerable gain in performance.
 
 % --- Section 6: Conclusion  ---
 \section{Conclusion}
-Transformers have linear representation of how piece moves but cnn/mlp have non-linear/dont have representation
-Through msr, we know that CNN perform good at low msr and transformer perform good at high msr, transformer is still most superior, in most complex and tatical positions but funnily enough it can sometimes overlook the most simple methods of detemining a position such as piece counting.
-
-\textbf{Limitations}\enskip
+Our work showed that while deep neural networks can possess the capacity to internalize spatial concepts without \textit{a priori} knowledge or search algorithms, the potential of these emergent representations depends heavily on their architectural inductive biases. Additionally, we show that localized convolutions result in entangled, non-linear representations, compared to the much more linearly decodable abstractions formed by the Transformer. Lastly, we show that the Transformer's ability to resolve scalable, long-range interactions that are independent of a position's combinatorial complexity, is the key driver for performance.
 
 % --- Section 7: Acknowledgments  ---
+\newpage
 \section*{Acknowledgments}
-This research project was supported by Nanyang Technological University under the URECA Undergraduate Research Programme.
+This research project was supported by Nanyang Technological University under the URECA Undergraduate Research Programme. 
 
 % --- Section 8: References  ---
-\newpage
 \bibliographystyle{plain} 
 \bibliography{references}
 
@@ -535,11 +507,9 @@ MLP & [1024, 512, 256, 7]  & 57.35\% \\ \bottomrule
 
 \subsubsection{CNN}
 \label{cnn_details}
-Let the main convolutional branch of a residual block be denoted as $\mathcal{F}$, where $\mathcal{F}(\mathbf{x}) = \text{BN}(\mathbf{W}_2 * \text{ReLU}(\text{BN}(\mathbf{W}_1 * \mathbf{x})))$. The forward pass for the $l$-th residual block is formally defined as:
-$$\mathbf{h}^{(l)} = \text{ReLU}\Big( \text{DropPath}\big(\text{SE}(\mathcal{F}(\mathbf{h}^{(l-1)}, \mathbf{W}^{(l)}))\big) + \mathbf{h}^{(l-1)} \Big)$$
-where $\mathbf{h}^{(l-1)}$ is the intermediate feature map from the previous layer.
+Let the main convolutional branch of a residual block be denoted as $\mathcal{F}$, where $\mathcal{F}(\mathbf{x}, \mathbf{W}) = \text{BN}(\mathbf{W}_2 * \text{ReLU}(\text{BN}(\mathbf{W}_1 * \mathbf{x})))$. The forward pass for the $l$-th residual block is formally defined as:$$\mathbf{h}^{(l)} = \text{ReLU}\Big( \text{DropPath}\big(\text{SE}(\mathcal{F}(\mathbf{h}^{(l-1)}, \mathbf{W}^{(l)}))\big) + \mathbf{h}^{(l-1)} \Big)$$where $\mathbf{h}^{(l-1)}$ is the intermediate feature map from the previous layer.
 
-During training, DropPath survival probabilities linearly decrease from $1.0$ at the first block to $0.8$ at the final block. The model we for the main evaluation (SE-ResNet-16) consists of 16 residual blocks, a channel depth of $C=64$, and an SE reduction ratio of $r=8$. The output of the residual blocks is projected to a small MLP with hidden dimensions of 256 with dropout of $0.5$ which then finally outputs the 7 class logits.
+During training, DropPath survival probabilities linearly decrease from $1.0$ at the first block to $0.8$ at the final block. The model we use for the main evaluation (SE-ResNet-16) consists of 16 residual blocks, a channel depth of $C=64$, and an SE reduction ratio of $r=8$. The output of the residual blocks is projected to a small MLP with hidden dimensions of 256 with a dropout of $0.5$ which then finally outputs the 7 class logits.
 
 \begin{table}[H]
 \centering
@@ -681,7 +651,7 @@ Our goal is to isolate spatial variance in positions. Here, we present the filte
     \item \textbf{Test 1:} The original uncontrolled subset of open-board positions. 
     \item \textbf{Test 2:} Restrict the Total Material Score on the board to $\in [0, 32]$.
     \item \textbf{Test 3:} Restrict the Total Piece Count to $\in [2, 16]$.
-    \item \textbf{Test 4:} Restrict the Sliding Piece Ratio, which is the fraction of long-range pieces (Queen, Bishop, Rook) over total pieces to $\in [0.15, 0.50]$. This is our Spatial Variance Benchmark. With the last restriction, it ensures variance in MSR would be mainly due to placements of the pieces rather than a trivial bias in piece types (e.g., a board containing more Queens than another).
+    \item \textbf{Test 4:} Restrict the Sliding Piece Ratio, which is the fraction of long-range pieces (Queen, Bishop, Rook) over total pieces to $\in [0.15, 0.50]$. This is our Spatial Variance Benchmark. With the last restriction, it ensures variance in MSR would be mainly due to the placement of the pieces rather than a trivial bias in piece types (e.g., a board containing more Queens than another).
 \end{enumerate}
 
 \begin{table}[H]
@@ -701,9 +671,15 @@ Test 4* & 61,596 & 0.197 & 0.481 & 0.261 & 0.347 \\ \bottomrule
 \end{tabular}
 \end{table}
 
+\section{Saliency Maps}
+\label{sec:saliency_maps}
+Unlike standard RGB images, where we commonly take the maximum gradient across the color channels, the inputs we described previously are sparse and mutually exclusive (a square can only contain one piece). To ensure we do not discard meaningful information about any potential piece when determining the total input sensitivity of each square, we construct the saliency map $M \in \mathbb{R}^{8 \times 8}$ by summing the magnitude of the gradients across all 12 piece channels:
+\[M_{ij} = \sum_{k=1}^{12} | \mathbf{W}_{kij} |\]
+where $\mathbf{W}_{kij}$ denotes the gradient element for piece channel $k$ at rank $i$ and file $j$.
+
 \section{Training Curves}
 \label{sec:training_curves}
-We see the effect of inductive biases versus the underlying mechanism even more clearly by observing the difference in training curves. The CNN had higher initial validation accuracy due to its spatial inductive biases of the $3 \times 3$ convolution, as shown in \autoref{fig:accuracy_curves}, but it was soon overtaken by the Transformer that was able to better generalize over epochs, as shown in \autoref{fig:train_val_loss_curves}.
+We see the effect of inductive biases more clearly by observing the difference in training curves. The CNN had higher initial validation accuracy due to its spatial inductive biases of the $3 \times 3$ convolution, as shown in \autoref{fig:accuracy_curves}, but it was soon overtaken by the Transformer that was able to better generalize over epochs, as shown in \autoref{fig:train_val_loss_curves}.
 
 \begin{figure}[H]
 \centering
@@ -783,6 +759,7 @@ We see the effect of inductive biases versus the underlying mechanism even more 
 \end{center}
 \caption{Accuracies for the first 10 epochs.}
 \label{fig:accuracy_curves}
+\vspace{-1.5em}
 \end{figure}
 
 % LOSS PLOTS 
@@ -853,6 +830,7 @@ We see the effect of inductive biases versus the underlying mechanism even more 
     \end{axis}
     \end{tikzpicture}
     \label{fig:sub_trans_loss}
+    \vspace{-1.5em}
 \end{subfigure}
 
 % --- SHARED LEGEND ---
@@ -864,35 +842,32 @@ We see the effect of inductive biases versus the underlying mechanism even more 
 \label{fig:train_val_loss_curves}
 \end{figure}
 
-\section{Unconstrained Linear Probe Maps}
+\section{Linear Probe Maps}
 \label{sec:appendix_linear_probes}
 
-This section provides the visual projections created from the unconstrained (100\% positive target) linear probes. We can observe the emergent spatial representations for all 4 modes: Flat Bitboard, MLP, CNN and Transformer.
-
-[add some more analysis to fill the gap]
-%todo before submission: add a red ring for each target piece, make the black pieces have white border and white pieces have black border, make the gridlines a bit more obvious, svg should be same size
+This section provides the visual projections created from the unconstrained (100\% positive target) linear probes. We can observe the emergent spatial representations for all 4 modes: Flat Bitboard, MLP, CNN and Transformer. The visualizations are plotted with standard color scale of 0.0 to 1.0.
 
 % --- KNIGHT PROBES ---
 \begin{figure*}[ht]
     \centering
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/raw_bitboards_knight} 
+        \includegraphics[width=\linewidth]{images/linear_probes/rb_knight.png} 
         \caption{Flat Bitboard}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/mlp_knight}
+        \includegraphics[width=\linewidth]{images/linear_probes/mlp_knight.png}
         \caption{MLP}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/cnn_knight}
+        \includegraphics[width=\linewidth]{images/linear_probes/cnn_knight.png}
         \caption{CNN}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/transformer_knight}
+        \includegraphics[width=\linewidth]{images/linear_probes/tf_knight.png}
         \caption{Transformer}
     \end{subfigure}
     \caption{Unconstrained linear probe projections for the \textbf{Knight}.}
@@ -904,22 +879,22 @@ This section provides the visual projections created from the unconstrained (100
     \centering
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/raw_bitboards_bishop} 
+        \includegraphics[width=\linewidth]{images/linear_probes/rb_bishop.png} 
         \caption{Flat Bitboard}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/mlp_bishop}
+        \includegraphics[width=\linewidth]{images/linear_probes/mlp_bishop.png}
         \caption{MLP}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/cnn_bishop}
+        \includegraphics[width=\linewidth]{images/linear_probes/cnn_bishop.png}
         \caption{CNN}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/transformer_bishop}
+        \includegraphics[width=\linewidth]{images/linear_probes/tf_bishop.png}
         \caption{Transformer}
     \end{subfigure}
     \caption{Unconstrained linear probe projections for the \textbf{Bishop}.}
@@ -931,22 +906,22 @@ This section provides the visual projections created from the unconstrained (100
     \centering
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/raw_bitboards_rook} 
+        \includegraphics[width=\linewidth]{images/linear_probes/rb_rook.png} 
         \caption{Flat Bitboard}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/mlp_rook}
+        \includegraphics[width=\linewidth]{images/linear_probes/mlp_rook.png}
         \caption{MLP}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/cnn_rook}
+        \includegraphics[width=\linewidth]{images/linear_probes/cnn_rook.png}
         \caption{CNN}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/transformer_rook}
+        \includegraphics[width=\linewidth]{images/linear_probes/tf_rook.png}
         \caption{Transformer}
     \end{subfigure}
     \caption{Unconstrained linear probe projections for the \textbf{Rook}.}
@@ -958,28 +933,27 @@ This section provides the visual projections created from the unconstrained (100
     \centering
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/raw_bitboards_queen} 
+        \includegraphics[width=\linewidth]{images/linear_probes/rb_queen.png} 
         \caption{Flat Bitboard}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/mlp_queen}
+        \includegraphics[width=\linewidth]{images/linear_probes/mlp_queen.png}
         \caption{MLP}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/cnn_queen}
+        \includegraphics[width=\linewidth]{images/linear_probes/cnn_queen.png}
         \caption{CNN}
     \end{subfigure}\hfill
     \begin{subfigure}{0.24\textwidth}
         \centering
-        \includesvg[width=\linewidth]{images/linear_probes/transformer_queen}
+        \includegraphics[width=\linewidth]{images/linear_probes/tf_queen.png}
         \caption{Transformer}
     \end{subfigure}
     \caption{Unconstrained linear probe projections for the \textbf{Queen}.}
     \label{fig:appendix_queen}
 \end{figure*}
-
 
 \end{multicols*}
 \end{document}
